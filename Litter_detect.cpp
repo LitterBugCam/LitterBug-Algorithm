@@ -1,0 +1,264 @@
+
+#include "edge_grouping.h"
+#include "scoring.h"
+#include "parameters.h"
+
+objects abandoned_objects;
+
+bool pass = false;
+Mat image, gray, F;
+Mat grad_x, D_Sx, B_Sx, F_Sx;
+Mat grad_y, D_Sy, B_Sy, F_Sy;
+Mat result, threshed1, accumulation;
+int vis;
+float meanfps = 0;
+int main(int argc, char *argv[]) {
+
+
+    // Change the video input here !!!! 
+   VideoCapture capture("/home/ilias/test1.avi");
+    // VideoCapture capture("/home/ilias/dataset/waxi3.avi");
+    //VideoCapture capture("/home/ilias/dataset/vvv55.avi");
+
+    Mat fore;
+    //capture.set(CV_CAP_PROP_POS_FRAMES, 255);
+    capture >> image;
+
+    if (resize_scale != 1)
+        resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
+
+    //image = image(Rect(20, 20, image.cols - 40, image.rows - 40));
+    //image = image(Rect(0, 0, image.cols, image.rows - 15));
+
+    //capture.set(CV_CAP_PROP_FPS,60);
+    cv::Mat abandoned_map = Mat::zeros(image.size(), CV_8UC1);
+    abandoned_map.copyTo(threshed1);
+    abandoned_map.copyTo(result);
+    abandoned_map.copyTo(object_map);
+
+    Mat segmap1 = Mat::zeros(image.size(), CV_16U);
+    Mat dirsum1 = Mat::zeros(image.size(), CV_32F);
+
+    Mat input;
+    int i = 0;
+
+
+
+    while (1) {
+        capture >> image;
+        //image = image(Rect(20, 20, image.cols - 40, image.rows - 40));    
+
+        if (resize_scale != 1)
+            resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
+
+        image.copyTo(input);
+
+        pass = false;
+        if (i % framemod != 0 && i > frameinit) {
+            i++;
+            continue;
+            pass = true;
+        }
+        double t = (double) getTickCount();
+
+        cout << "frame " << i << endl;
+        cv::Mat F_Sx = Mat::zeros(image.size(), CV_8UC1);
+        cv::Mat F_Sy = Mat::zeros(image.size(), CV_8UC1);
+
+
+        cvtColor(image, gray, CV_BGR2GRAY);
+        // imshow("gray",gray);
+        blur(gray, gray, Size(3, 3));
+
+        if (low_light)
+            gray = gray * 1.5;
+
+
+        Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+        Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+
+
+
+        cv::Mat dir;
+        cv::cartToPolar(grad_x, grad_y, normm, dir, true);
+
+
+        if (i == 0) {
+            // X direction
+            grad_x.copyTo(B_Sx);
+
+            // Y direction
+            grad_y.copyTo(B_Sy);
+
+
+        } else {
+
+            D_Sx = grad_x - B_Sx;
+            B_Sx = B_Sx + alpha_S*D_Sx;
+
+            D_Sy = grad_y - B_Sy;
+            B_Sy = B_Sy + alpha_S*D_Sy;
+
+            for (int k = 1; k < image.cols - 1; k++)
+ {
+                for (int j = 1; j < image.rows - 1; j++) 
+                {
+
+
+                    if (i % framemod2 == 0)
+                        if (abandoned_map.at<uchar>(j, k) >= 1)//&& stat.at<uchar>(j,k)==0)
+                            abandoned_map.at<uchar>(j, k) -= 1;
+
+                    if (abs(D_Sx.at<float>(j, k)) > fore_th && abs(grad_x.at<float>(j, k)) >= 20) F_Sx.at<uchar>(j, k) = 255;
+                    if (abs(D_Sy.at<float>(j, k)) > fore_th && abs(grad_y.at<float>(j, k)) >= 20) F_Sy.at<uchar>(j, k) = 255;
+
+                    if (i > frameinit && i % framemod2 == 0) {
+                        alpha_S = 0.0001;
+
+                        if (F_Sx.at<uchar>(j, k) == 255 || F_Sy.at<uchar>(j, k) == 255)//&& abandoned_map.at<uchar>(j,k)<255) 					
+                            abandoned_map.at<uchar>(j, k) += 2;
+
+                        for (int r0 = -1; r0 <= 1; r0++)
+                            for (int c0 = -1; c0 <= 1; c0++) {
+                                int j1 = j + r0;
+                                int k1 = k + c0;
+                                // 60-30 PETS 120-80 AVSS
+                                if (abandoned_map.at<uchar>(j1, k1) > aotime && abandoned_map.at<uchar>(j, k) > aotime2 && abandoned_map.at<uchar>(j, k) < aotime)
+                                    abandoned_map.at<uchar>(j, k) = aotime;
+
+                            }
+                        threshed1.at<uchar>(j, k) = 0;
+                        result.at<uchar>(j, k) = 0;
+                        object_map.at<uchar>(j, k) = 0;
+
+                        if (abandoned_map.at<uchar>(j, k) > aotime) {
+                            result.at<uchar>(j, k) = 255;
+                            threshed1.at<uchar>(j, k) = 220;
+                        }
+                        if (abandoned_map.at<uchar>(j, k) > 5 && abandoned_map.at<uchar>(j, k) < aotime)
+                            threshed1.at<uchar>(j, k) = 30;
+
+                        if (abandoned_map.at<uchar>(j, k) > aotime2)
+                            //{
+                            object_map.at<uchar>(j, k) = 255;
+                        //}
+                        //tempy.at<float>(j, k) = B_Sy.at<float>(j, k);
+                       // tempx.at<float>(j, k) = B_Sx.at<float>(j, k);
+
+
+                    }
+
+
+                }
+            }
+
+            F = F_Sx + F_Sy;
+            Mat grad, map2;
+
+            bitwise_not(abandoned_map, accumulation);
+            abandoned_map.copyTo(map2);
+            abandoned_objects.extractObject(result, image, i, abandoned_map, map2);
+            cv::Canny(gray, bw, 30, 30 * 3, 3);
+
+            Mat gg;
+            // dir1 = dir*(PI / 180);
+            cv::cartToPolar(grad_x, grad_y, gg, dir1);
+            cv::Mat finalmap1(image.size(), CV_8UC3, Scalar(255, 255, 255));
+            finalmap = finalmap1;
+
+
+            abandoned_objects.processed_objects.clear();
+            stop = false;
+
+            bool enter = false;
+            for (int u = 0; u < abandoned_objects.abandonnes.size(); u++) {
+                bool process = false;
+                for (int e = 0; e < abandoned_objects.processed_objects.size(); e++) {
+
+                    if (abs(abandoned_objects.processed_objects[e].origin.x - abandoned_objects.abandonnes[u].origin.x) < 20 && abs(abandoned_objects.processed_objects[e].origin.y - abandoned_objects.abandonnes[u].origin.y) < 20
+                            && abs(abandoned_objects.processed_objects[e].endpoint.x - abandoned_objects.abandonnes[u].endpoint.x) < 20 && abs(abandoned_objects.processed_objects[e].endpoint.y - abandoned_objects.abandonnes[u].endpoint.y) < 20) {
+                        process = true;
+
+                        break;
+                    }
+                }
+                if (process) continue;
+
+                AO obj;
+                obj = abandoned_objects.abandonnes[u];
+                abandoned_objects.processed_objects.push_back(obj);
+                if (abs(obj.origin.y - obj.endpoint.y) < 15 || abs(obj.origin.x - obj.endpoint.x) < minsize) continue;
+
+                if (obj.origin.y < 6) obj.origin.y = 6;
+                if (obj.origin.x < 6) obj.origin.x = 6;
+                if (obj.endpoint.y> int(image.rows - 6)) obj.endpoint.y = image.rows - 6;
+                if (obj.endpoint.x> int(image.cols - 6)) obj.endpoint.x = image.cols - 6;
+
+
+                rectangle(image, Rect(obj.origin, obj.endpoint), Scalar(255, 255, 255));
+
+
+
+                float Staticness, Objectness;
+
+                for (int r0 = -2; r0 <= 2; r0++) {
+
+                    uint y = obj.origin.y + r0;
+                    uint x = obj.origin.x + r0;
+                    if (obj.origin.y < 5 && obj.origin.x < 5) continue;
+
+                    for (int c0 = -2; c0 <= 2; c0++) {
+                        uint w = obj.endpoint.y + c0;
+                        uint h = obj.endpoint.x + c0;
+
+                        segmap1.copyTo(segmap);
+                        dirsum1.copyTo(dirsum);
+                        Staticness = 0;
+                        Objectness = 0;
+
+                        edge_segments(y, x, w, h, Staticness, Objectness);
+
+                        if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000) {
+                            enter = true;
+
+                            rectangle(image, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
+                            rectangle(threshed1, Rect(obj.origin, obj.endpoint), Scalar(255, 255, 255), 2);
+
+                            rectangle(map2, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
+                            //putText(image, "Abandoned !", Point(obj.origin.x, obj.origin.y - 10), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2, 8, false);
+                            abandoned_objects.abandonnes[u].abandoness++;
+
+                            if (abandoned_objects.abandonnes[u].abandoness > 0) {
+                                stop = true;
+                                abandoned_objects.abandonnes[u].update = false;
+                                abandoned_objects.abandonnes[u].activeness = 2000;
+                            }
+
+                        }
+                    }
+                }
+
+            }
+
+            cvtColor(threshed1, threshed, CV_GRAY2BGR);
+            cvtColor(F, fore, CV_GRAY2BGR);
+
+            bitwise_not(fore, fore);
+            bitwise_not(threshed, threshed);
+            imshow("output", image);
+            imshow("static edges", threshed);
+            imshow("moving edges", fore);
+
+            waitKey(10);
+
+        }
+        t = ((double) getTickCount() - t) / getTickFrequency();
+
+        cout << "FPS  " << 1 / t << endl;
+        meanfps = (meanfps + (1 / t)) / 2;
+        cout << "mean FPS  " << 1 / t << endl;
+
+        i++;
+    }
+    return 0;
+}
