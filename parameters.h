@@ -4,12 +4,12 @@
 //important parameters
 float  staticness_th = 0.00001;// Staticness score threshold (degree of the object being static)
 double objectness_th = 0.00001;//  Objectness score threshold (probability that the rectangle contain an object)
-int aotime = 40; //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !! 
-double alpha_S = 0.01; // background scene learning rate 
+int aotime = 30; //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !! 
+double alpha = 0.0002; // background scene learning rate 
 double fore_th = 50; // Threshold moving edges segmentation
 
 //Less important parameters
-int frameinit = 400; // Frames needed for learning the background
+int frameinit = 300; // Frames needed for learning the background
 bool low_light = false; // if night scene
 
 int framemod = 1;

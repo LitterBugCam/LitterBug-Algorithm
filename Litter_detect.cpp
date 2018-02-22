@@ -12,13 +12,20 @@ Mat grad_y, D_Sy, B_Sy, F_Sy;
 Mat result, threshed1, accumulation;
 int vis;
 float meanfps = 0;
-int main(int argc, char *argv[]) {
+int main(int argc, char * argv[])
 
+{
+    char * videopath;
+
+    
+    if(argc < 2)
+        cout <<"please specify the video path"<<endl;
+    else   
+        videopath= argv[1];
+    
+    VideoCapture capture(videopath);
 
     // Change the video input here !!!! 
-   VideoCapture capture("/home/ilias/test1.avi");
-    // VideoCapture capture("/home/ilias/dataset/waxi3.avi");
-    //VideoCapture capture("/home/ilias/dataset/vvv55.avi");
 
     Mat fore;
     //capture.set(CV_CAP_PROP_POS_FRAMES, 255);
@@ -43,8 +50,16 @@ int main(int argc, char *argv[]) {
     int i = 0;
 
 
-
+    double  alpha_S;
+    double alpha_init=0.01;
+    alpha_S=alpha_init;
+    
+    
+    
     while (1) {
+        
+        if(i > frameinit) alpha_S=alpha;
+        
         capture >> image;
         //image = image(Rect(20, 20, image.cols - 40, image.rows - 40));    
 
@@ -55,6 +70,7 @@ int main(int argc, char *argv[]) {
 
         pass = false;
         if (i % framemod != 0 && i > frameinit) {
+            
             i++;
             continue;
             pass = true;
@@ -113,7 +129,7 @@ int main(int argc, char *argv[]) {
                     if (abs(D_Sy.at<float>(j, k)) > fore_th && abs(grad_y.at<float>(j, k)) >= 20) F_Sy.at<uchar>(j, k) = 255;
 
                     if (i > frameinit && i % framemod2 == 0) {
-                        alpha_S = 0.0001;
+                        //alpha_S = 0.0005;
 
                         if (F_Sx.at<uchar>(j, k) == 255 || F_Sy.at<uchar>(j, k) == 255)//&& abandoned_map.at<uchar>(j,k)<255) 					
                             abandoned_map.at<uchar>(j, k) += 2;
@@ -231,7 +247,7 @@ int main(int argc, char *argv[]) {
                             if (abandoned_objects.abandonnes[u].abandoness > 0) {
                                 stop = true;
                                 abandoned_objects.abandonnes[u].update = false;
-                                abandoned_objects.abandonnes[u].activeness = 2000;
+                                abandoned_objects.abandonnes[u].activeness = 200;
                             }
 
                         }
