@@ -2,30 +2,61 @@
 #include "edge_grouping.h"
 #include "scoring.h"
 #include "parameters.h"
-
 objects abandoned_objects;
 
-bool pass = false;
 Mat image, gray, F;
 Mat grad_x, D_Sx, B_Sx, F_Sx;
 Mat grad_y, D_Sy, B_Sy, F_Sy;
 Mat result, threshed1, accumulation;
 int vis;
 float meanfps = 0;
-int main(int argc, char * argv[])
 
+int main(int argc, char * argv[])
+ {
+      ofstream results;
+  results.open ("detected_litters.txt");
+  results<<"        detected litters \n\n";
+       ifstream File( "parameters.txt" );
+    static const std::streamsize max = std::numeric_limits<std::streamsize>::max();
+std::vector<int> values;
+double value;
+File.ignore(max, '=');
+short f=1;
+while(f<=12)
 {
+    File >> value;
+   // values.push_back(value);
+        switch (f)
+                
+                {
+            case 1: staticness_th=(double) value;break;
+            case 2: objectness_th=(double) value;break;
+            case 3: aotime=(int) value;break;
+        case 4: aotime2=(int) value;break;
+        case 5: alpha=(double) value;break;
+        case 6: fore_th=(int) value;break;
+        case 7: frameinit=(int) value;break;
+        case 8: low_light=(bool) value;break;
+        case 9: framemod=(int) value;break;
+        case 10: framemod2=(int) value;break;
+        case 11: minsize=(int) value;break;
+        case 12: resize_scale=(double) value;break;
+        
+                }   
+        File.ignore(max, '=');
+        f++;
+
+}
     char * videopath;
 
-    
-    if(argc < 2)
-        cout <<"please specify the video path"<<endl;
-    else   
-        videopath= argv[1];
-    
+
+    if (argc < 2)
+        cout << "please specify the video path" << endl;
+    else
+        videopath = argv[1];
+
     VideoCapture capture(videopath);
 
-    // Change the video input here !!!! 
 
     Mat fore;
     //capture.set(CV_CAP_PROP_POS_FRAMES, 255);
@@ -34,7 +65,7 @@ int main(int argc, char * argv[])
     if (resize_scale != 1)
         resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
 
-    //image = image(Rect(20, 20, image.cols - 40, image.rows - 40));
+  //  image = image(Rect(20, 20, image.cols - 40, image.rows - 40));
     //image = image(Rect(0, 0, image.cols, image.rows - 15));
 
     //capture.set(CV_CAP_PROP_FPS,60);
@@ -45,35 +76,39 @@ int main(int argc, char * argv[])
 
     Mat segmap1 = Mat::zeros(image.size(), CV_16U);
     Mat dirsum1 = Mat::zeros(image.size(), CV_32F);
+dirsum1.copyTo(D_Sx);
+dirsum1.copyTo(D_Sy);
 
     Mat input;
     int i = 0;
 
 
-    double  alpha_S;
-    double alpha_init=0.01;
-    alpha_S=alpha_init;
-    
-    
-    
+    double alpha_S;
+    double alpha_init = 0.01;
+    alpha_S = alpha_init;
+
+
+
     while (1) {
+
         
-        if(i > frameinit) alpha_S=alpha;
         
+        if (i > frameinit) alpha_S = alpha;
+
         capture >> image;
-        //image = image(Rect(20, 20, image.cols - 40, image.rows - 40));    
+        if(image.empty())
+            break;
+      //  image = image(Rect(20, 20, image.cols - 40, image.rows - 40));    
 
         if (resize_scale != 1)
             resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
 
-        image.copyTo(input);
+      //  image.copyTo(input);
 
-        pass = false;
         if (i % framemod != 0 && i > frameinit) {
-            
+
             i++;
             continue;
-            pass = true;
         }
         double t = (double) getTickCount();
 
@@ -107,20 +142,28 @@ int main(int argc, char * argv[])
             grad_y.copyTo(B_Sy);
 
 
-        } else {
+        }
+
+        else {
+            
+    
 
             D_Sx = grad_x - B_Sx;
-            B_Sx = B_Sx + alpha_S*D_Sx;
+           B_Sx = B_Sx + alpha_S*D_Sx;
+     
+         
+              D_Sy = grad_y - B_Sy;
+           B_Sy = B_Sy + alpha_S*D_Sy;
+           
+      // result= result.zeros(image.size(), CV_8UC1);
+   // threshed1   =threshed1.zeros(image.size(), CV_8UC1);
+   //   object_map = object_map.zeros(image.size(), CV_8UC1);
+      
+            for (int k = 1; k < image.cols - 1; k++) {
+                for (int j = 1; j < image.rows - 1; j++) {
 
-            D_Sy = grad_y - B_Sy;
-            B_Sy = B_Sy + alpha_S*D_Sy;
-
-            for (int k = 1; k < image.cols - 1; k++)
- {
-                for (int j = 1; j < image.rows - 1; j++) 
-                {
-
-
+      
+                    
                     if (i % framemod2 == 0)
                         if (abandoned_map.at<uchar>(j, k) >= 1)//&& stat.at<uchar>(j,k)==0)
                             abandoned_map.at<uchar>(j, k) -= 1;
@@ -143,24 +186,20 @@ int main(int argc, char * argv[])
                                     abandoned_map.at<uchar>(j, k) = aotime;
 
                             }
-                        threshed1.at<uchar>(j, k) = 0;
-                        result.at<uchar>(j, k) = 0;
-                        object_map.at<uchar>(j, k) = 0;
-
+                       threshed1.at<uchar>(j, k) = 0;
+                       result.at<uchar>(j, k) = 0;
+                     object_map.at<uchar>(j, k) = 0;
                         if (abandoned_map.at<uchar>(j, k) > aotime) {
                             result.at<uchar>(j, k) = 255;
-                            threshed1.at<uchar>(j, k) = 220;
+                            //threshed1.at<uchar>(j, k) = 220;
                         }
-                        if (abandoned_map.at<uchar>(j, k) > 5 && abandoned_map.at<uchar>(j, k) < aotime)
-                            threshed1.at<uchar>(j, k) = 30;
+                      //  if (abandoned_map.at<uchar>(j, k) > 5 && abandoned_map.at<uchar>(j, k) < aotime)
+                           // threshed1.at<uchar>(j, k) = 30;
 
                         if (abandoned_map.at<uchar>(j, k) > aotime2)
-                            //{
+                         
                             object_map.at<uchar>(j, k) = 255;
-                        //}
-                        //tempy.at<float>(j, k) = B_Sy.at<float>(j, k);
-                       // tempx.at<float>(j, k) = B_Sx.at<float>(j, k);
-
+                     
 
                     }
 
@@ -169,9 +208,9 @@ int main(int argc, char * argv[])
             }
 
             F = F_Sx + F_Sy;
-            Mat grad, map2;
+            Mat  map2;
 
-            bitwise_not(abandoned_map, accumulation);
+          //  bitwise_not(abandoned_map, accumulation);
             abandoned_map.copyTo(map2);
             abandoned_objects.extractObject(result, image, i, abandoned_map, map2);
             cv::Canny(gray, bw, 30, 30 * 3, 3);
@@ -236,7 +275,7 @@ int main(int argc, char * argv[])
 
                         if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000) {
                             enter = true;
-
+                            results<<" x: "<< x<<" y: "<<y<<" w: "<<w<<" h: "<<h<<endl; 
                             rectangle(image, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
                             rectangle(threshed1, Rect(obj.origin, obj.endpoint), Scalar(255, 255, 255), 2);
 
@@ -262,8 +301,9 @@ int main(int argc, char * argv[])
             bitwise_not(fore, fore);
             bitwise_not(threshed, threshed);
             imshow("output", image);
-            imshow("static edges", threshed);
+            imshow("static edges", result);
             imshow("moving edges", fore);
+            imshow("finalmap", finalmap);
 
             waitKey(10);
 
@@ -272,7 +312,7 @@ int main(int argc, char * argv[])
 
         cout << "FPS  " << 1 / t << endl;
         meanfps = (meanfps + (1 / t)) / 2;
-        cout << "mean FPS  " << 1 / t << endl;
+        cout << "mean FPS  " << meanfps << endl;
 
         i++;
     }
