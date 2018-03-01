@@ -1,0 +1,14 @@
+staticness_th = 0.00001
+objectness_th = 0.00001
+aotime = 50
+aotime2 = 30
+alpha = 0.0001
+fore_th = 50
+frameinit = 300
+low_light = 0
+framemod = 1
+framemod2 = 5
+minsize= 30
+resize_scale= 1 
+
+
