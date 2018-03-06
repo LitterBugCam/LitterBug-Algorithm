@@ -17,7 +17,16 @@ For more information, please visit our website https://litterbug.cam/
 # Prerequisites
 1. OpenCV
 
+# Detection example
+check this video !
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=7AQPiU4QIy0"><img src="https://img.youtube.com/vi/7AQPiU4QIy0/0.jpg" alt="Detection example"></a>
+</div>
 
+# Configuration
+  
+  You can modify the Parameters.txt file to adapt the algorithm to the scene you are running the algorithm on and to the type of abandoned object you are trying to detect.
+  
 # Setup
 
 Just run make command in the source code folder
