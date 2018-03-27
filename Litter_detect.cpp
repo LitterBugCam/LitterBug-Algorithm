@@ -159,8 +159,8 @@ dirsum1.copyTo(D_Sy);
    // threshed1   =threshed1.zeros(image.size(), CV_8UC1);
    //   object_map = object_map.zeros(image.size(), CV_8UC1);
       
-			for (int j = 1; j < image.rows - 1; j++) {
-            	for (int k = 1; k < image.cols - 1; k++) {
+            for (int k = 1; k < image.cols - 1; k++) {
+                for (int j = 1; j < image.rows - 1; j++) {
 
       
                     
@@ -266,16 +266,12 @@ dirsum1.copyTo(D_Sy);
                         uint w = obj.endpoint.y + c0;
                         uint h = obj.endpoint.x + c0;
 
-						// FIXME: added missing clamping
-						if (w < 0) w = 0; if (w > image.cols) w = image.cols;
-						if (h < 0) h = 0; if (h > image.rows) h = image.rows;
-						
                         segmap1.copyTo(segmap);
                         dirsum1.copyTo(dirsum);
                         Staticness = 0;
                         Objectness = 0;
 
-                        edge_segments(x, y, w, h, Staticness, Objectness);
+                        edge_segments(y, x, w, h, Staticness, Objectness);
 
                         if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000) {
                             enter = true;
