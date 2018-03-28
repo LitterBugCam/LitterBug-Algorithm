@@ -16,42 +16,35 @@ bool debug;
 void edge_segments(int cc, int rr, int w, int h, float &score, float &circularity) {
 
     int segcount = 1;
-    
-    for (int r = rr; r < h; r++) {
-		
-		uchar* bw_C = bw.ptr<uchar>(r);
-        uchar* object_map_C = object_map.ptr<uchar>(r);
-  		float* dir1_C = dir1.ptr<float>(r);
-        int* segmap_C = segmap.ptr<int>(r);
-        float* dirsum_C = dirsum.ptr<float>(r);
-        Vec3b* finalmap_C = finalmap.ptr<Vec3b>(r);
+    for (int r = rr; r < h; r++)
+        for (int c = cc; c < w; c++) {
 
-         for (int c = cc; c < w; c++){
-            if (bw_C[c] == 255 && object_map_C[c] == 255) {
+
+            if (bw.at<uchar>(c, r) == 255 && object_map.at<uchar>(c, r) == 255) {
 
                 float omin = 1000;
                 int segid, cs, rs;
                 bool neib = false;
                 bool isolated = true;
 
-                for (int r0 = -1; r0 <= 1; r0++){
+                for (int r0 = -1; r0 <= 1; r0++)
                     for (int c0 = -1; c0 <= 1; c0++) {
 
                         int c1 = c + c0;
                         int r1 = r + r0;
                      
-                        if (bw.at<uchar>(r1, c1) == 255) {
+                        if (bw.at<uchar>(c1, r1) == 255) {
                             isolated = false;
-                            if (segmap.at<int>(r1, c1) != 0) {
+                            if (segmap.at<int>(c1, r1) != 0) {
 
                                 // test angle between p(c,r) and p1(c1,r1)
 
-                                float v = fabs(dir1_C[c] - dir1.at<float>(r1, c1)) / PI;
+                                float v = fabs(dir1.at<float>(c, r) - dir1.at<float>(c1, r1)) / PI;
 
                                 if (v > 0.5) v = fabs(1 - v);
 
                                 //test the min angle with neibghor
-                                if (v < omin && dirsum.at<float>(r1, c1) < 0.5) {
+                                if (v < omin && dirsum.at<float>(c1, r1) < 0.5) {
 
                                     cs = c1;
                                     rs = r1;
@@ -63,31 +56,28 @@ void edge_segments(int cc, int rr, int w, int h, float &score, float &circularit
                             }
                         }
                     }
-                }
                 if (neib == true)//&& omin!=1000)
                 {
-                    // @!!! changing original matrix
-                    segmap_C[c] = segmap.at<int>(rs, cs);
-                         dirsum.at<float>(rs, cs) += omin;
-                     dirsum_C[c] = dirsum.at<float>(rs, cs);
-                     finalmap_C[c] = finalmap.at<Vec3b>(rs, cs);
+                    segmap.at<int>(c, r) = segmap.at<int>(cs, rs);
+                         dirsum.at<float>(cs, rs) += omin;
+                     dirsum.at<float>(c, r) = dirsum.at<float>(cs, rs);
+                     finalmap.at<Vec3b>(c, r) = finalmap.at<Vec3b>(cs, rs);
                 }//no segment exist in neigbhor, new segment is created starting from this point
                
                 else
                     if (!isolated) {
                     //~ cout<<"segments count "<<segcount<<endl;
                     //~ segmap1.at<edgep>(c,r).dirsum= new float(0);	
-                    segmap_C[c] = segcount;
+                    segmap.at<int>(c, r) = segcount;
                     //~ RNG rng(12345);
                     //~ segmap1.at<edgep>(c,r).edgepoint= new Scalar(rand()&255, rand()&255, rand()&255);
-                    finalmap_C[c][0] = rand() & 255;
-                    finalmap_C[c][1] = rand() & 255;
-                    finalmap_C[c][2] = rand() & 255;
+                    finalmap.at<Vec3b>(c, r)[0] = rand() & 255;
+                    finalmap.at<Vec3b>(c, r)[1] = rand() & 255;
+                    finalmap.at<Vec3b>(c, r)[2] = rand() & 255;
                     segcount++;
                 }
             }
         }
-	}
     afinityidx.clear();
     afinity.clear();
     //prepare data for computing affinities
@@ -104,27 +94,18 @@ void edge_segments(int cc, int rr, int w, int h, float &score, float &circularit
     afinityidx.resize(segcount);
     afinity.resize(segcount);
 
-        
-    for (int r = rr; r < h; r++) {
-        int* segmap_C = segmap.ptr<int>(r);
-        float* dir1_C = dir1.ptr<float>(r);
-        uchar* normm_C = normm.ptr<uchar>(r);
-        
-        for (int c = cc; c < w; c++){
-            
-            int segmap_val = segmap_C[c];
-            
-            if (segmap_val > 0) {
-                meanX[segmap_val] += c;
-                meanY[segmap_val] += r;
-                meanOX[segmap_val] += cos(2 * dir1_C[c]);
-                meanOY[segmap_val] += sin(2 * dir1_C[c]);
-                meanNB[segmap_val]++;
-                segmag[segmap_val] += ((int) normm_C[c] / 255);
+    for (int r = rr; r < h; r++)
+        for (int c = cc; c < w; c++) {
+            if (segmap.at<int>(c, r) > 0) {
+                meanX[segmap.at<int>(c, r)] += c;
+                meanY[segmap.at<int>(c, r)] += r;
+                meanOX[segmap.at<int>(c, r)] += cos(2 * dir1.at<float>(c, r));
+                meanOY[segmap.at<int>(c, r)] += sin(2 * dir1.at<float>(c, r));
+                meanNB[segmap.at<int>(c, r)]++;
+                segmag[segmap.at<int>(c, r)] += ((int) normm.at<uchar>(c, r) / 255);
                 //~ cout<<"norm "<<(int)normm.at<uchar>(c,r)<<endl;
             }
         }
-}
 
 
     for (int i = 1; i < segcount; i++) {
@@ -143,12 +124,12 @@ void edge_segments(int cc, int rr, int w, int h, float &score, float &circularit
     for (int r = rr + 2; r < h - 1; r++)
         for (int c = cc + 2; c < w - 1; c++) {
 
-            int s0 = segmap.at<int>(r, c);
+            int s0 = segmap.at<int>(c, r);
             if (s0 <= 0) continue;
 
             for (int rd = -2; rd <= 2; rd++)
                 for (int cd = -2; cd <= 2; cd++) {
-                    int s1 = segmap.at<int>(r + rd, c + cd);
+                    int s1 = segmap.at<int>(c + cd, r + rd);
                     if (s1 <= s0) continue;
                     bool found = false;
                     for (int i = 0; i < afinityidx[s0].size(); i++)
@@ -194,7 +175,7 @@ void edge_segments(int cc, int rr, int w, int h, float &score, float &circularit
 
         float angle;
         angle = fabs(sin(meanO[i]));
-        pow(angle, 2);
+       // pow(angle, 2);
 
         //top boundary
         if (meanX[i] < cc + (w - cc) / 3 && meanY[i] > rr + (h - rr) / 3 && meanY[i] < rr + 2 * (h - rr) / 3) {
@@ -233,17 +214,7 @@ void edge_segments(int cc, int rr, int w, int h, float &score, float &circularit
     if (bot == 0) bot = 1000000;
     if (right == 0) right = 1000000;
 
-    if (left == 0 && top != 0 && bot != 0 && right != 0)
-        left = 1;
 
-    if (left != 0 && top == 0 && bot != 0 && right != 0)
-        top = 1;
-
-    if (left != 0 && top != 0 && bot == 0 && right != 0)
-        bot = 1;
-
-    if (left != 0 && top != 0 && bot != 0 && right == 0)
-        right = 1;
 
     float leftdiff = 1 / pow((h - rr) - (float) left, 2), rightdiff = 1 / pow((h - rr) - (float) right, 2),
             topdiff = 1 / pow((w - cc) - (float) top, 2), botdiff = 1 / pow((w - cc) - (float) bot, 2);

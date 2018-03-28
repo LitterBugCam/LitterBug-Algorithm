@@ -46,7 +46,7 @@ public:
     vector<object> candidat;
     int minDistance(Point p1, Point p2, Point q1, Point q2);
     void grouping(Mat &image, int j);
-    void extractObject(Mat &image, Mat & frame, int i, Mat &map, Mat & map2);
+    void extractObject(Mat &image, Mat & frame, int i, Mat & map2);
 
 };
 
