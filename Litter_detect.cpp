@@ -391,8 +391,8 @@ threshold(abandoned_map,result, aotime, 255, THRESH_BINARY);
 
                         if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000) {
                             enter = true;
-                            //results<<" x: "<< x<<" y: "<<y<<" w: "<<w<<" h: "<<h<<endl; 
-                           // rectangle(image, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
+                            results<<" x: "<< x<<" y: "<<y<<" w: "<<w<<" h: "<<h<<endl; 
+                           rectangle(image, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
                             //rectangle(threshed1, Rect(obj.origin, obj.endpoint), Scalar(255, 255, 255), 2);
 
                             //rectangle(map2, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
@@ -414,19 +414,19 @@ threshold(abandoned_map,result, aotime, 255, THRESH_BINARY);
           //  cvtColor(threshed1, threshed, CV_GRAY2BGR);
            // cvtColor(F, fore, CV_GRAY2BGR);
 
-          //  bitwise_not(fore, fore);
+            bitwise_not(fore, fore);
             //bitwise_not(threshed, threshed);
-            //imshow("output", image);
+            imshow("output", image);
             //imshow("static edges", result);
-            //imshow("moving edges", fore);
+         //   imshow("moving edges", fore);
             //imshow("finalmap", finalmap);
 
-            //waitKey(10);
+            waitKey(10);
 
         }
         t = ((double) getTickCount() - t) / getTickFrequency();
 
-//        cout << "FPS  " << 1 / t << endl;
+        cout << "FPS  " << 1 / t << endl;
         meanfps =  (1 / t)+meanfps;
 
 //		cout<<"FPS "<<1/t<<endl;
