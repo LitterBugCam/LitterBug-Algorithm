@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Apr 12 12:49:49 2018
-
+# just a small script to publish litterbug detection information to AWS IoT gateway and detections to S3
 @author: ilias
 """
 import boto3
