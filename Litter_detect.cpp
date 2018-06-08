@@ -10,14 +10,62 @@ Mat image, gray, F;
 Mat grad_x, D_Sx, B_Sx, F_Sx;
 Mat grad_y, D_Sy, B_Sy, F_Sy;
 Mat result, threshed1, accumulation;
+Mat people_heat_map;
+
 int vis;
 float meanfps = 0;
 float meanfps_static = 0;
+static void detectAndDraw(const HOGDescriptor &hog, Mat &img)
+{
+    vector<Rect> found, found_filtered;
+    double t = (double) getTickCount();
+    // Run the detector with default parameters. to get a higher hit-rate
+    // (and more false alarms, respectively), decrease the hitThreshold and
+    // groupThreshold (set groupThreshold to 0 to turn off the grouping completely).
+    hog.detectMultiScale(img, found, 0, Size(8,8), Size(32,32), 1.05, 3);
+   // t = (double) getTickCount() - t;
+    //cout << "detection time = " << (t*1000./cv::getTickFrequency()) << " ms" << endl;
 
+    for(size_t i = 0; i < found.size(); i++ )
+    {
+        Rect r = found[i];
+
+        size_t j;
+        // Do not add small detections inside a bigger detection.
+        for ( j = 0; j < found.size(); j++ )
+            if ( j != i && (r & found[j]) == r )
+                break;
+
+        if ( j == found.size() )
+            found_filtered.push_back(r);
+    }
+
+    for (size_t i = 0; i < found_filtered.size(); i++)
+    {
+        Rect r = found_filtered[i];
+
+        // The HOG detector returns slightly larger rectangles than the real objects,
+        // so we slightly shrink the rectangles to get a nicer output.
+        r.x += cvRound(r.width*0.1);
+        r.width = cvRound(r.width*0.8);
+        r.y += cvRound(r.height*0.07);
+        r.height = cvRound(r.height*0.8);
+        rectangle(img, r.tl(), r.br(), cv::Scalar(0,255,0), 3);
+        	//ellipse( img, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 60, 60, 60 ), -1, 8 );
+	ellipse( img, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 150, 150, 150 ), -1, 8 );
+
+	ellipse( people_heat_map, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 150, 150, 150 ), -1, 8 );
+	
+    }
+}
 int main(int argc, char * argv[])
  {
 //    cout<<"optimized ? "<<cv::useOptimized()<<endl;;
-
+ 
+	     HOGDescriptor hog;
+    hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
+	 
+	 
       ofstream results;
   results.open ("detected_litters.txt");
   results<<"        detected litters \n\n";
@@ -410,6 +458,8 @@ threshold(abandoned_map,result, aotime, 255, THRESH_BINARY);
                 
 
             }
+            detectAndDraw(hog, image);
+people_heat_map=people_heat_map-1;
 
           //  cvtColor(threshed1, threshed, CV_GRAY2BGR);
            // cvtColor(F, fore, CV_GRAY2BGR);
