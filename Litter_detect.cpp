@@ -52,9 +52,9 @@ static void detectAndDraw(const HOGDescriptor &hog, Mat &img)
         r.height = cvRound(r.height*0.8);
         rectangle(img, r.tl(), r.br(), cv::Scalar(0,255,0), 3);
         	//ellipse( img, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 60, 60, 60 ), -1, 8 );
-	ellipse( img, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 150, 150, 150 ), -1, 8 );
+	//ellipse( img, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 200, 200, 200 ), -1, 8 );
 
-	ellipse( people_heat_map, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 150, 150, 150 ), -1, 8 );
+	ellipse( people_heat_map, Point( r.x+r.width/2, r.y+r.height ), Size( r.height/2, r.width/2 ), 0, 0, 360, Scalar( 200, 200, 200 ), -1, 8 );
 	
     }
 }
@@ -434,7 +434,10 @@ threshold(abandoned_map,result, aotime, 255, THRESH_BINARY);
 						segmap=Scalar::all(0);
 	                    Staticness = 0;
                         Objectness = 0;
-
+			cv::Rect AO_ROI(cv::Point(x, y), cv::Point(h, w));
+			int AO_area = cv::countNonZero(people_heat_map(AO_ROI));
+			if( AO_area> 400) 
+			{
                         edge_segments(y, x, w, h, Staticness, Objectness);
 
                         if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000) {
@@ -454,7 +457,7 @@ threshold(abandoned_map,result, aotime, 255, THRESH_BINARY);
                             }
 
                         }
-                  
+			}
                 
 
             }
