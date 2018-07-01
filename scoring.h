@@ -19,6 +19,34 @@
 
 using segmap_t = int16_t;
 
+
+template<class T>
+int getCvTypeFor1Channel()
+{
+    if (sizeof(T) == 8)
+        return CV_64F;
+    if (sizeof(T) == 1)
+    {
+        if (std::is_signed<T>::value)
+            return CV_8SC1;
+        else
+            return CV_8UC1;
+    }
+    if (sizeof(T) == 2)
+    {
+        if (std::is_signed<T>::value)
+            return CV_16SC1;
+        else
+            return CV_16UC1;
+    }
+    if (sizeof(T) == 4)
+    {
+        if (std::is_signed<T>::value)
+            return CV_32S;
+    }
+    return CV_32F;
+}
+
 extern bool stop;
 extern cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1, object_map;
 extern std::vector<std::vector<float>> afinity;
