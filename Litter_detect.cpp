@@ -286,7 +286,7 @@ int main(int argc, char * argv[])
             {
                 bool process = false;
                 auto& atu = abandoned_objects.abandonnes.at(u);
-                for (auto & processed_object : abandoned_objects.processed_objects)
+                for (const auto & processed_object : abandoned_objects.processed_objects)
                 {
 
                     if (abs(processed_object.origin.x - atu.origin.x) < 20 && abs(processed_object.origin.y - atu.origin.y) < 20
@@ -338,7 +338,6 @@ int main(int argc, char * argv[])
                         atu.update = false;
                         atu.activeness = 200;
                     }
-
                 }
             }
 
