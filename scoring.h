@@ -55,13 +55,13 @@ void inline divideArr(std::vector<C>& arr, const std::vector<T>& by)
 }
 
 extern bool stop;
-extern cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1, object_map;
+extern cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1;
 extern std::vector< fullbits_int_t >  overlap_seg;
 extern std::vector< fullbits_int_t > seg_processed;
 extern std::vector<float > segw;
 extern std::vector<int> segmag;
 extern bool debug;
-void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);
+void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);
 
 #endif /* SCORING_H */
 

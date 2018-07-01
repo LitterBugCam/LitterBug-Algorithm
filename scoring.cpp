@@ -5,7 +5,7 @@
 bool stop;
 std::vector<int> segmag;
 
-cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1, object_map;
+cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1;
 
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
@@ -14,7 +14,7 @@ bool debug;
 
 
 
-void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
+void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
     using namespace cv;
     size_t segcount = 1;

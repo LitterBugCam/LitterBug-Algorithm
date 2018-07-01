@@ -159,7 +159,6 @@ int main(int argc, char * argv[])
         cv::Mat dir;
         cv::cartToPolar(grad_x, grad_y, normm, dir, true);
 
-        object_map = zeroMatrix8U;
         if (i == 0)
         {
             // X direction
@@ -266,7 +265,7 @@ int main(int argc, char * argv[])
             }
             cv::Mat result     = zeroMatrix8U;
             threshold(abandoned_map, result, aotime, 255, THRESH_BINARY);
-            threshold(abandoned_map, object_map, aotime2, 255, THRESH_BINARY);
+
             double t2 = ((double) getTickCount() - t) / getTickFrequency();
             //      cout << " static region FPS  " << 1 / t2 << endl;
             meanfps_static = meanfps_static + (1 / t2);
@@ -284,6 +283,10 @@ int main(int argc, char * argv[])
 
             AO_Collection po;
             po.reserve(abandoned_objects.abandonnes.size());
+
+            cv::Mat object_map         = zeroMatrix8U;
+            threshold(abandoned_map, object_map, aotime2, 255, THRESH_BINARY);
+
             for (auto& atu : abandoned_objects.abandonnes)
             {
                 const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const AO & obj)
@@ -314,7 +317,7 @@ int main(int argc, char * argv[])
                 const auto w = atu.endpoint.y ;
                 const auto h = atu.endpoint.x ;
 
-                edge_segments(y, x, w, h, Staticness, Objectness);
+                edge_segments(object_map, y, x, w, h, Staticness, Objectness);
 
                 if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000)
                 {
