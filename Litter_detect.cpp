@@ -115,7 +115,6 @@ int main(int argc, char * argv[])
         resize(image, image, cv::Size(image.cols * resize_scale, image.rows * resize_scale));
 
     const auto zeroMatrix8U     = cv::Mat::zeros(image.size(), CV_8UC1);
-    const auto zeroMatrixSegmap = cv::Mat::zeros(image.size(), getCvTypeFor1Channel<segmap_t>());
     const auto zeroMatrix32F    = cv::Mat::zeros(image.size(), CV_32F);
     const auto ffMatrix8UC3     = cv::Mat::ones(image.size(), CV_8UC3) * 255;
 
@@ -309,7 +308,6 @@ int main(int argc, char * argv[])
                 float Staticness = 0, Objectness = 0;
 
                 dirsum = zeroMatrix32F;
-                segmap = zeroMatrixSegmap;
                 //let compiler optimize this hard (added const)
                 const auto y = atu.origin.y;
                 const auto x = atu.origin.x;

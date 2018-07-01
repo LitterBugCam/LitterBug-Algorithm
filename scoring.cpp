@@ -3,19 +3,20 @@
 #include <map>
 
 bool stop;
-std::vector<int> segmag;
 
-cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1;
+cv::Mat normm, dir1, foreground1, dirsum, finalmap, bw, bw1;
 
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
-std::vector<float > segw;
 bool debug;
 
-
+using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all opencb will be 8 bits as well >:
 
 void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
+    const auto mhw = std::max(h, w); //not sure, i'm lost when to use h or w ...so just let it be square so all indexes are valid
+    cv::Mat segmap = cv::Mat(mhw + 1, mhw + 1, cv::DataType<segmap_t>::type, cv::Scalar(0)); //(and +1 because of loops below)
+
     using namespace cv;
     size_t segcount = 1;
     for (fullbits_int_t r = rr; r < h; ++r)
@@ -88,8 +89,8 @@ void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t 
 
 
     //prepare data for computing affinities
-    segw.assign(segcount, 0);
-    segmag.assign(segcount, 0);
+    std::vector<float > segw(segcount, 0);
+    std::vector<int>    segmag(segcount, 0);
 
     overlap_seg.resize(0);
     std::vector<int>     meanX(segcount, 0), meanY(segcount, 0), meanNB(segcount, 0);
