@@ -2,8 +2,6 @@
 #include "scoring.h"
 #include <map>
 
-bool stop;
-
 cv::Mat foreground1, dirsum, finalmap, bw, bw1;
 
 std::vector< fullbits_int_t >  overlap_seg;

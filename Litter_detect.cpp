@@ -269,9 +269,6 @@ int main(int argc, char * argv[])
 
             finalmap = ffMatrix8UC3;
 
-
-            stop = false;
-
             sortX(abandoned_objects.abandonnes);
 
             AO_Collection po;
@@ -325,7 +322,6 @@ int main(int argc, char * argv[])
 
                     if (atu.abandoness > 0)
                     {
-                        stop = true;
                         atu.update = false;
                         atu.activeness = 200;
                     }
