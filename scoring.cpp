@@ -152,13 +152,19 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                     afinityidx[s1][s0] = true;
                 }
         }
-    score = pow(0.1, segcount - afinityidx.size());
-
+    score = 1;
+    auto counter = segcount - afinityidx.size();
     for (const auto& ap : afinityidx)
     {
-        if (segw[ap.first] >= 0.5) continue;
+        if (segw[ap.first] >= 0.5)
+        {
+            --counter;
+            continue;
+        }
         score *= ap.second.size() / 2.f;
     }
+    if (counter > 0)
+        score *= pow(0.1, counter);
     /////////////////////////////////////////////////////:
     //~ cout<<"score "<<score<<endl;
 
