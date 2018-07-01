@@ -288,6 +288,9 @@ int main(int argc, char * argv[])
                            && std::abs(obj.endpoint.x - atu.endpoint.x) < 20 && std::abs(obj.endpoint.y - atu.endpoint.y) < 20;
                 });
                 if (process) continue;
+                po.push_back(atu);
+                sortX(po);
+
                 if (std::abs(atu.origin.y - atu.endpoint.y) < 15 || std::abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
 
                 atu.origin.y = std::max(atu.origin.y, 6);
