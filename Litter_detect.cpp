@@ -270,7 +270,7 @@ int main(int argc, char * argv[])
             double t2 = ((double) getTickCount() - t) / getTickFrequency();
             //      cout << " static region FPS  " << 1 / t2 << endl;
             meanfps_static = meanfps_static + (1 / t2);
-            abandoned_objects.extractObject(result, image, i, abandoned_map);
+            abandoned_objects.extractObject(result, image, i);
             cv::Canny(gray, bw, 30, 30 * 3, 3);
 
             constexpr auto pi_180 = (PI) / 180.;

@@ -31,7 +31,7 @@ cv::Point::value_type objects::minDistance(const cv::Point& p1, const cv::Point&
     return mi;
 }
 
-void objects::grouping(const cv::Mat &image, size_t j)
+void objects::grouping(size_t j)
 {
     auto& cj = candidat.at(j);
     for (size_t e = 0, sz = candidat.size(); e < sz; ++e)
@@ -41,20 +41,20 @@ void objects::grouping(const cv::Mat &image, size_t j)
         {
             if (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5)
             {
-                if (abs(cj.apparition - ce.apparition) < 50)
+                if (std::abs(cj.apparition - ce.apparition) < 50)
                 {
                     if (cj.positiongroup == 0)
                     {
                         ce.positiongroup = compteur;
                         cj.positiongroup = compteur;
                         compteur++;
-                        grouping(image, e);
+                        grouping(e);
                     }
                     else
                         if (cj.positiongroup > 0)
                         {
                             ce.positiongroup = cj.positiongroup;
-                            grouping(image, e);
+                            grouping(e);
                         }
                 }
             }
@@ -62,7 +62,7 @@ void objects::grouping(const cv::Mat &image, size_t j)
     }
 }
 
-void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits_int_t i,  const cv::Mat &map2)
+void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits_int_t newindex)
 {
     (void)frame; //disabling unused warning
 
@@ -82,20 +82,18 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
         }
     }
 
-    fullbits_int_t d = 0;
-    for (auto & boxe : boxes)
+
+    for (const auto & boxe : boxes)
     {
         bool found = false;
-        cv::Point2f sample;
-        sample.x = (float) (boxe.x + boxe.width / 2);
-        sample.y = (float) (boxe.y + boxe.height / 2);
+        const cv::Point2f sample{boxe.x + boxe.width / 2.f, boxe.y + boxe.height / 2.f};
 
         for (auto & j : candidat)
         {
             j.skip = false;
             j.positiongroup = 0;
             //~ if(blob->minx-candidat[j].origin.x<5 && blob->miny-candidat[j].origin.y<5 && blob->maxx-candidat[j].endpoint.x<5 && blob->maxy-candidat[j].endpoint.y<5 )
-            if (abs(sample.x - j.centre.x) < 5 && abs(sample.y - j.centre.y) < 5)
+            if (std::abs(sample.x - j.centre.x) < 5 && std::abs(sample.y - j.centre.y) < 5)
             {
 
                 j.centre.x = sample.x;
@@ -128,13 +126,9 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
             obj.lifetime = 0;
             obj.activeness = 40;
             obj.active = true;
-            obj.apparition = i;
+            obj.apparition = newindex;
             candidat.push_back(obj);
         }
-
-        //~ free(blob);
-
-        d++;
     }
 
     compteur = 1;
@@ -142,7 +136,7 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
     {
         if (candidat[j].skip)
             continue;
-        grouping(map2, j);
+        grouping(j);
         //if (candidat[j].lifetime < 150);
         // rectangle(map2, Rect(candidat[j].origin, candidat[j].endpoint), Scalar(255, 0, 0));
     }

@@ -112,12 +112,14 @@ public:
 
 public:
     cv::Point::value_type minDistance(const cv::Point &p1, const cv::Point &p2, const cv::Point &q1, const cv::Point &q2);
-    void grouping(const cv::Mat &image, size_t j);
-    void extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits_int_t i, const cv::Mat & map2);
+
+    void extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits_int_t newindex);
     void reserve(long framesCount);
 
     objects() = default;
     objects(long framesCount);
+private:
+    void grouping(size_t j);
 };
 
 #endif /* EDGE_GROUPING_H */
