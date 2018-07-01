@@ -21,7 +21,7 @@ using segmap_t = int16_t;
 
 
 template<class T>
-int getCvTypeFor1Channel()
+typename std::enable_if<std::is_arithmetic<T>::value, int>::type getCvTypeFor1Channel()
 {
     if (sizeof(T) == 8)
         return CV_64F;
