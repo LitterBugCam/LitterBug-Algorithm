@@ -155,6 +155,11 @@ public:
     {
         return lifetime > 20 && positiongroup == 0;
     }
+
+    void kill()
+    {
+        activeness = -100;
+    }
 };
 
 class objects

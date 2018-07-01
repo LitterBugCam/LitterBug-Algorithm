@@ -100,11 +100,10 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     compteur = 1;
     for (size_t j = 0, sz = candidat.size(); j < sz; ++j)
     {
-        if (candidat[j].skip())
+        if (candidat.at(j).skip())
             continue;
+
         grouping(j);
-        //if (candidat[j].lifetime < 150);
-        // rectangle(map2, Rect(candidat[j].origin, candidat[j].endpoint), Scalar(255, 0, 0));
     }
 
     //fixme : this loop will have a bit different logic then original indexed for, because...original could crash on last frame erased....
@@ -119,6 +118,10 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
         {
             const cv::Rect tmp{it.origin.x, it.origin.y, it.endpoint.x - it.origin.x, it.endpoint.y - it.origin.y};
             abandonnes.emplace_back(tmp, it.centre);
+
+            //fixme: well, dunno, it seems logically for me to remove "skipped" candidate...
+            //using "kill" recognizes woman as a whole bag at the end of movie + for 1 second recognizes bag in man's hands
+            //it.kill();
         }
     }
     cleanup(candidat);
