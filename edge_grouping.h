@@ -97,6 +97,16 @@ public:
         //        endpoint.y = boxe.height;
     }
 
+    bool isFullyOverlap(const object& src) const
+    {
+        //checks if this contais src or src contains this completely
+        const cv::Rect r1(origin, endpoint);
+        const cv::Rect r2(src.origin, src.endpoint);
+        const auto ir = r1 & r2;
+        const auto ar = ir.area();
+        return ar > r1.area() * 0.9 || ar > r2.area() * 0.9;
+    }
+
     bool active() const
     {
         return activeness > 0;

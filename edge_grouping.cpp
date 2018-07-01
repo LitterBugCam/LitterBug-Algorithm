@@ -36,6 +36,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     std::vector<cv::Vec4i> hierarchy;
     cv::findContours(image, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 
+    //making surrounding boxes to calculated contours
     if (!contours.empty() && !hierarchy.empty())
     {
         for (fullbits_int_t idx = 0; idx >= 0; idx = hierarchy.at(idx)[0])
@@ -46,7 +47,26 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
         }
     }
 
-    //making surrounding boxes to calculated contours
+    //if 2 boxes overlap more then 60% of 1 of the boxes - then join it
+    for (size_t i = 0, sz = boxes.size(); sz && i < sz - 1; ++i)
+    {
+        auto& b1 = boxes.at(i);
+        for (size_t j = i + 1; j < sz; ++j)
+        {
+            const auto& b2 = boxes.at(j);
+            const auto aj = (b1 & b2).area();
+            if ( aj > 0.6 * b1.area() || aj > 0.6 * b2.area())
+            {
+                b1 = b1 | b2;
+                sz -= 1;
+                boxes.erase(boxes.begin() + j);
+                i -= 1;
+                break;
+            }
+        }
+    }
+
+
     for (const auto & boxe : boxes)
     {
         bool found = false;
@@ -67,26 +87,31 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     }
 
     //grouping all closest which are not grouped yet
-    for (bool once = true; once; once = !once)
+    std::sort(candidat.begin(), candidat.end(), [](object & o1, object & o2)
     {
-        for (size_t j = 0, sz = candidat.size(); sz && (j < sz - 1); ++j)
-        {
-            auto& cj = candidat.at(j);
-            if (cj.active())
-                for (size_t e = j + 1, r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
-                {
-                    auto& ce = candidat.at(e);
-                    if (ce.active())
-                        if (cj.isCloseFrame(ce) && minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5)
-                        {
-                            cj.join(ce);
-                            ce.kill();
-                            once = false;
-                        }
-                }
-        }
+        if (std::abs(o1.origin.x - o2.origin.x) < 3)
+            return o1.origin.y < o2.origin.y;
+        return o1.origin.x < o2.origin.x;
+    });
+    for (size_t j = 0, sz = candidat.size(); sz && (j < sz - 1); ++j)
+    {
+        auto& cj = candidat.at(j);
+        if (cj.active())
+            for (size_t e = j + 1, r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
+            {
+                auto& ce = candidat.at(e);
+                if (ce.active())
+                    if (cj.isFullyOverlap(ce) || (cj.isCloseFrame(ce) && minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5))
+                    {
+                        cj.join(ce);
+                        ce.kill();
+                        sz -= 1;
+                        candidat.erase(candidat.begin() + e);
+                        j -= 1;
+                        break;
+                    }
+            }
     }
-
 
     ALG_NS::for_each(candidat.begin(), candidat.end(), [](object & c)
     {

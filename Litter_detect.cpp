@@ -268,9 +268,6 @@ int main(int argc, char * argv[])
             cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
 
 
-            obj_collection po;
-            po.reserve(abandoned_objects.candidat.size());
-
             ZeroedArray<uint8_t> object_map(image.size());
             threshold(abandoned_map, object_map.getStorage(), aotime2, 255, THRESH_BINARY);
 
@@ -279,6 +276,10 @@ int main(int argc, char * argv[])
                 cv::Mat not_used; //by doing {} showing compiler we dont need that, so it will take care
                 cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
             }
+
+            obj_collection po;
+            po.reserve(abandoned_objects.candidat.size());
+
             for (auto& atu : abandoned_objects.candidat)
             {
                 const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const object & obj)
@@ -287,10 +288,6 @@ int main(int argc, char * argv[])
                            && std::abs(obj.endpoint.x - atu.endpoint.x) < 20 && std::abs(obj.endpoint.y - atu.endpoint.y) < 20;
                 });
                 if (process) continue;
-
-                po.push_back(atu);
-                sortX(po);
-
                 if (std::abs(atu.origin.y - atu.endpoint.y) < 15 || std::abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
 
                 atu.origin.y = std::max(atu.origin.y, 6);
@@ -302,7 +299,6 @@ int main(int argc, char * argv[])
                 //dont you think it is suspicous - reverted w/h (and seems reverted again in edge_segment)
                 es_param_t params(atu.origin.y, atu.origin.x, atu.endpoint.y, atu.endpoint.x);
                 edge_segments(object_map, angles, canny, params);
-
                 if (params.score > staticness_th && params.circularity > objectness_th && params.circularity < 1000000)
                 {
                     results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
@@ -312,13 +308,22 @@ int main(int argc, char * argv[])
             }
             //ok,those 2 take around -5 fps on i7
             //std::cout << "Objects count: " << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
+            std::string text = "FPS: " + std::to_string(meanfps / (i + 1));
+            cv::putText(image,
+                        text,
+                        cv::Point(5, 20), // Coordinates
+                        cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
+                        1.0, // Scale. 2.0 = 2x bigger
+                        cv::Scalar(255, 255, 255), // BGR Color
+                        1, // Line Thickness
+                        CV_AA); // Anti-alias
             imshow("output", image);
             waitKey(10);
         }
         t = ((double) getTickCount() - t) / getTickFrequency();
         meanfps =  (1 / t) + meanfps;
-        if (i % 50 == 0 )
-            std::cout << "FPS  " << meanfps / (i + 1) << ", Objects: " << abandoned_objects.candidat.size() << std::endl;
+        //        if (i % 50 == 0 )
+        //            std::cout << "FPS  " << meanfps / (i + 1) << ", Objects: " << abandoned_objects.candidat.size() << std::endl;
     }
     //std::cout << "mean FPS  " << meanfps / i << std::endl;
     //std::cout << "mean FPS region  " << meanfps_static / i  << std::endl;
