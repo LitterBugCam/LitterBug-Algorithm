@@ -10,13 +10,28 @@ bool debug;
 
 using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all opencb will be 8 bits as well >:
 
+
 void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
-    //ZeroedMapArray<short> segmap;
-    //ZeroedMapArray<float> dirsum;
+    //this started with FPS  14.5386 and ended up with FPS  8.29852
+    //    ZeroedMapArray<short> segmap;
+    //    ZeroedMapArray<float> dirsum;
 
-    ZeroedArray<short> segmap(std::max(w, h) + 1);
-    ZeroedArray<float> dirsum(std::max(w, h) + 1);
+    //this ended up with FPS  9.02838 and started with FPS  13.9089
+    //const auto mwh = std::max(w, h) + 1;
+    //ZeroedArray<short> segmap(mwh);
+    //ZeroedArray<float> dirsum(mwh);
+
+    const auto mwh = std::max(w, h) + 1;
+    //started with FPS  14.0295 and ended up with FPS  7.97129
+    //    ZeroedMapArray<short> segmap;
+    //    ZeroedArray<float> dirsum(mwh);
+
+    //started with FPS  14.0595 and ended up with FPS  9.10016
+    //it seems it is a winner
+    ZeroedArray<short> segmap(mwh);
+    ZeroedMapArray<float> dirsum;
+
 
     using namespace cv;
     size_t segcount = 1;
@@ -88,7 +103,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
     for (fullbits_int_t r = rr; r < h; ++r)
         for (fullbits_int_t c = cc; c < w; ++c)
         {
-            const auto& index = segmap.at(c, r);
+            const auto index = segmap.at(c, r);
             if (index >= 0) //fixme: not sure, this check disallows 0th element in arrays divides, shouldn't it be >=0
             {
                 meanX [index] += c;

@@ -13,10 +13,9 @@
 #include <algorithm>
 
 
-//keeping same maximum bitness as target CPU is, but signed (this should allow extra optimization by compiler)
-//on my i7 it is +2-3 fps immediatly
-using fullbits_int_t = std::make_signed<size_t>::type;
 
+//using fullbits_int_t = std::make_signed<size_t>::type;
+using fullbits_int_t = int32_t;
 
 #ifdef USING_OPENMP
     #include <parallel/algorithm>
