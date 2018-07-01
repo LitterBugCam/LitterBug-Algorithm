@@ -113,7 +113,7 @@ public:
 public:
     cv::Point::value_type minDistance(const cv::Point &p1, const cv::Point &p2, const cv::Point &q1, const cv::Point &q2);
 
-    void extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits_int_t newindex);
+    void populateObjects(const cv::Mat &image, fullbits_int_t newindex);
     void reserve(long framesCount);
 
     objects() = default;

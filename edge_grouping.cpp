@@ -62,10 +62,8 @@ void objects::grouping(size_t j)
     }
 }
 
-void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits_int_t newindex)
+void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
 {
-    (void)frame; //disabling unused warning
-
     // cvtColor(map2, map2_temp, CV_GRAY2RGB);
     std::vector<cv::Rect> boxes;
     std::vector<std::vector<cv::Point>> contours;
@@ -198,8 +196,8 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
 
 void objects::reserve(long framesCount)
 {
-    abandonnes.reserve(framesCount);
-    candidat.reserve(framesCount);
+    abandonnes.reserve(framesCount * 50); //counting 50 objects per frame about...
+    candidat.reserve(framesCount * 20);
 }
 
 objects::objects(long framesCount)

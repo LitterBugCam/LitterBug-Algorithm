@@ -257,13 +257,13 @@ int main(int argc, char * argv[])
                     ++abandoned_map_ptr_back;
                 }
             }
-            cv::Mat result     = zeroMatrix8U;
-            threshold(abandoned_map, result, aotime, 255, THRESH_BINARY);
+            cv::Mat frame     = zeroMatrix8U;
+            threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
 
             double t2 = ((double) getTickCount() - t) / getTickFrequency();
             //      cout << " static region FPS  " << 1 / t2 << endl;
             meanfps_static = meanfps_static + (1 / t2);
-            abandoned_objects.extractObject(result, image, i);
+            abandoned_objects.populateObjects(frame, i);
             ZeroedArray<uint8_t> canny(0);
             cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
 
@@ -318,6 +318,7 @@ int main(int argc, char * argv[])
                 }
             }
             //ok,those 2 take around -5 fps on i7
+            std::cout << "Objects count: abs=" << abandoned_objects.abandonnes.size() << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
             imshow("output", image);
             waitKey(10);
         }
