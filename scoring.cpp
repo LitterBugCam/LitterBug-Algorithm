@@ -152,12 +152,12 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                     afinityidx[s1][s0] = true;
                 }
         }
-    float affine = pow(0.1, segcount - afinityidx.size());
+    score = pow(0.1, segcount - afinityidx.size());
 
     for (const auto& ap : afinityidx)
     {
         if (segw[ap.first] >= 0.5) continue;
-        affine *= ap.second.size() / 2.f;
+        score *= ap.second.size() / 2.f;
     }
     /////////////////////////////////////////////////////:
     //~ cout<<"score "<<score<<endl;
@@ -249,7 +249,4 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     circularity = (1000000000 * leftdiff * rightdiff * topdiff * botdiff); //pow(number,2);
 
     if (circularity > 10000000) circularity = 0;
-
-    score = affine;
-
 }
