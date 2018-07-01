@@ -1,4 +1,4 @@
-
+#include <cmath>
 #include "scoring.h"
 bool stop;
 std::vector<int> segmag;
@@ -43,9 +43,9 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
 
                                 // test angle between p(c,r) and p1(c1,r1)
 
-                                float v = fabs(dir1.at<float>(c, r) - dir1.at<float>(c1, r1)) / PI;
+                                auto v = std::abs<float>(dir1.at<float>(c, r) - dir1.at<float>(c1, r1)) / PI;
 
-                                if (v > 0.5) v = fabs(1 - v);
+                                if (v > 0.5) v = std::abs<float>(1 - v);
 
                                 //test the min angle with neibghor
                                 if (v < omin && dirsum.at<float>(c1, r1) < 0.5)
@@ -164,7 +164,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                     continue;
 
                     float o = atan2(meanY[s0] - meanY[s1], meanX[s0] - meanX[s1]) + (PI / 2);
-                    float a = fabs(cos(meanO[s0] - o) * cos(meanO[s1] - o));
+                    auto  a = std::abs<float>(cos(meanO[s0] - o) * cos(meanO[s1] - o));
                     a = pow(a, 2);
                     afinity[s0].push_back(a);
                     afinityidx[s0].push_back(s1);
@@ -197,24 +197,23 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     {
         if (segw[i] >= 1) continue;
 
-        float angle;
-        angle = fabs(sin(meanO[i]));
+        auto angle = std::abs<float>(sin(meanO[i]));
         // pow(angle, 2);
 
         //top boundary
         if (meanX[i] < cc + (w - cc) / 3 && meanY[i] > rr + (h - rr) / 3 && meanY[i] < rr + 2 * (h - rr) / 3)
         {
 
-            anglesum_top += fabs(angle - 1) * meanNB[i];
-            if (fabs(angle - 1) < 0.5)   top += meanNB[i];
+            anglesum_top += std::abs<float>(angle - 1) * meanNB[i];
+            if (std::abs<float>(angle - 1) < 0.5)   top += meanNB[i];
 
         }
         //bot boundary
         if (meanX[i] > cc + 2 * (w - cc) / 3 && meanY[i] > rr + (h - rr) / 3 && meanY[i] < rr + 2 * (h - rr) / 3)
         {
 
-            anglesum_bot += fabs(angle - 1) * meanNB[i];
-            if (fabs(angle - 1) < 0.5)    bot += meanNB[i];
+            anglesum_bot += std::abs<float>(angle - 1) * meanNB[i];
+            if (std::abs<float>(angle - 1) < 0.5)    bot += meanNB[i];
 
         }
 
@@ -222,16 +221,16 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         if (meanY[i] < rr + (h - rr) / 3 && meanX[i] < cc + 2 * (w - cc) / 3 && meanX[i] > cc + (w - cc) / 3)
         {
 
-            anglesum_left += fabs(angle * meanNB[i]);
-            if (fabs(angle) < 0.5)  left += meanNB[i];
+            anglesum_left += std::abs<float>(angle * meanNB[i]);
+            if (std::abs<float>(angle) < 0.5)  left += meanNB[i];
 
         }
         //right boundary
         if (meanY[i] > rr + 2 * (h - rr) / 3 && meanX[i] < cc + 2 * (w - cc) / 3 && meanX[i] > cc + (w - cc) / 3)
         {
 
-            anglesum_right += fabs(angle * meanNB[i]);
-            if (fabs(angle) < 0.5)   right += meanNB[i];
+            anglesum_right += std::abs<float>(angle * meanNB[i]);
+            if (std::abs<float>(angle) < 0.5)   right += meanNB[i];
 
         }
 
