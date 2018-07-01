@@ -2,15 +2,10 @@
 #include "scoring.h"
 #include <map>
 
-cv::Mat foreground1, bw, bw1;
-
-std::vector< fullbits_int_t > seg_processed;
-bool debug;
-
 using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all opencb will be 8 bits as well >:
 
 
-void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
+void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<float> &dir1, const ZeroedArray<uint8_t> &canny, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
     //this started with FPS  14.5386 and ended up with FPS  8.29852
     //    ZeroedMapArray<short> segmap;
@@ -33,11 +28,11 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
 
 
     using namespace cv;
-    size_t segcount = 1;
+    decltype(segmap)::value_type segcount = 1;
     for (fullbits_int_t r = rr; r < h; ++r)
         for (fullbits_int_t c = cc; c < w; ++c)
         {
-            if (bw.at<uchar>(c, r) == 255 && object_map.at<uchar>(c, r) == 255)
+            if (canny.at(c, r) == 255 && object_map.at(c, r) == 255)
             {
 
                 float omin = 1000;
@@ -52,7 +47,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
                         fullbits_int_t c1 = c + c0;
                         fullbits_int_t r1 = r + r0;
 
-                        if (bw.at<uchar>(c1, r1) == 255)
+                        if (canny.at(c1, r1) == 255)
                         {
                             isolated = false;
                             if (segmap.at(c1, r1) != 0)
@@ -60,7 +55,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
 
                                 // test angle between p(c,r) and p1(c1,r1)
 
-                                auto v = std::abs<float>(dir1.at<float>(c, r) - dir1.at<float>(c1, r1)) / PI;
+                                auto v = std::abs<float>(dir1.at(c, r) - dir1.at(c1, r1)) / PI;
 
                                 if (v > 0.5) v = std::abs<float>(1 - v);
 
@@ -105,8 +100,8 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
             {
                 meanX [index] += c;
                 meanY [index] += r;
-                meanOX[index] += cos(2 * dir1.at<float>(c, r));
-                meanOY[index] += sin(2 * dir1.at<float>(c, r));
+                meanOX[index] += cos(2 * dir1.at(c, r));
+                meanOY[index] += sin(2 * dir1.at(c, r));
                 meanNB[index] += 1;
             }
         }
@@ -174,7 +169,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
         return a + 2 * (b - a) / 3;
     };
 
-    for (size_t i = 0; i < segcount; ++i)
+    for (fullbits_int_t i = 0; i < segcount; ++i)
     {
         const auto angle = std::abs<float>(sin(meanO[i]));
 

@@ -28,10 +28,6 @@ void inline divideArr(std::vector<C>& arr, const std::vector<T>& by)
     ALG_NS::transform (arr.cbegin(), arr.cend(), by.cbegin(), arr.begin(), std::divides<C>());
 }
 
-extern cv::Mat foreground1, bw, bw1;
-extern std::vector< fullbits_int_t > seg_processed;
-extern bool debug;
-void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);
 
 //well, instead using arrays and wasting a lot of memory, lets use map, however, it has limitations to 32-bit index
 
@@ -55,6 +51,7 @@ private:
         return (static_cast<uint64_t>(x) << 32) + y; //limits are because of that - packing 2 nums into 1
     }
 public:
+    using value_type = T;
     //mimic cv::Mat which uses at(y, x)
     T at(uint32_t y, uint32_t x) const
     {
@@ -85,8 +82,17 @@ class ZeroedArray
 private:
     cv::Mat storage;
 public:
-    ZeroedArray(int Size):
-        storage(Size, Size, cv::DataType<T>::type, cv::Scalar(0)) {}
+    using value_type = T;
+
+    ZeroedArray(int size):
+        storage(size, size, cv::DataType<T>::type, cv::Scalar(0)) {}
+
+    ZeroedArray(int rows, int cols): //height, width
+        storage(rows, cols, cv::DataType<T>::type, cv::Scalar(0)) {}
+
+    ZeroedArray(cv::Size size):
+        storage(std::move(size), cv::DataType<T>::type, cv::Scalar(0)) {}
+
     T at(uint32_t y, uint32_t x) const
     {
         return storage.at<T>(y, x);
@@ -96,7 +102,14 @@ public:
     {
         return storage.at<T>(y, x);
     }
+    cv::Mat& getStorage()
+    {
+        return storage;
+    }
 };
+
+
+void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<float> &dir1, const ZeroedArray<uint8_t>& canny, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);
 
 #endif /* SCORING_H */
 

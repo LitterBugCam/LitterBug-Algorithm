@@ -264,20 +264,21 @@ int main(int argc, char * argv[])
             //      cout << " static region FPS  " << 1 / t2 << endl;
             meanfps_static = meanfps_static + (1 / t2);
             abandoned_objects.extractObject(result, image, i);
-            cv::Canny(gray, bw, 30, 30 * 3, 3);
+            ZeroedArray<uint8_t> canny(0);
+            cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
 
             sortX(abandoned_objects.abandonnes);
 
             AO_Collection po;
             po.reserve(abandoned_objects.abandonnes.size());
 
-            cv::Mat object_map         = zeroMatrix8U;
-            threshold(abandoned_map, object_map, aotime2, 255, THRESH_BINARY);
+            ZeroedArray<uint8_t> object_map(image.size());
+            threshold(abandoned_map, object_map.getStorage(), aotime2, 255, THRESH_BINARY);
 
-            cv::Mat angles;
+            ZeroedArray<float> angles(0);
             {
                 cv::Mat not_used; //by doing {} showing compiler we dont need that, so it will take care
-                cv::cartToPolar(grad_x, grad_y, not_used, angles, false);
+                cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
             }
             for (auto& atu : abandoned_objects.abandonnes)
             {
@@ -307,7 +308,7 @@ int main(int argc, char * argv[])
                 const auto w = atu.endpoint.y ;
                 const auto h = atu.endpoint.x ;
 
-                edge_segments(object_map, angles, y, x, w, h, Staticness, Objectness);
+                edge_segments(object_map, angles, canny, y, x, w, h, Staticness, Objectness);
 
                 if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000)
                 {
