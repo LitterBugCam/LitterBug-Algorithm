@@ -32,25 +32,27 @@ Point::value_type objects::minDistance(const Point& p1, const Point& p2, const P
 
 void objects::grouping(const cv::Mat &image, size_t j)
 {
+    auto& cj = candidat.at(j);
     for (size_t e = 0, sz = candidat.size(); e < sz; ++e)
     {
-        if (e != j && candidat.at(e).positiongroup == 0)
+        auto& ce = candidat.at(e);
+        if (e != j && ce.positiongroup == 0)
         {
-            if (minDistance(candidat.at(j).origin, candidat.at(j).endpoint, candidat.at(e).origin, candidat.at(e).endpoint) < 5)
+            if (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5)
             {
-                if (abs(candidat.at(j).apparition - candidat.at(e).apparition) < 50)
+                if (abs(cj.apparition - ce.apparition) < 50)
                 {
-                    if (candidat.at(j).positiongroup == 0)
+                    if (cj.positiongroup == 0)
                     {
-                        candidat.at(e).positiongroup = compteur;
-                        candidat.at(j).positiongroup = compteur;
+                        ce.positiongroup = compteur;
+                        cj.positiongroup = compteur;
                         compteur++;
                         grouping(image, e);
                     }
                     else
-                        if (candidat.at(j).positiongroup > 0)
+                        if (cj.positiongroup > 0)
                         {
-                            candidat.at(e).positiongroup = candidat.at(j).positiongroup;
+                            ce.positiongroup = cj.positiongroup;
                             grouping(image, e);
                         }
                 }
@@ -61,6 +63,8 @@ void objects::grouping(const cv::Mat &image, size_t j)
 
 void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits_int_t i,  const cv::Mat &map2)
 {
+    (void)frame; //disabling unused warning
+
     using namespace cv;
     using namespace std;
     // cvtColor(map2, map2_temp, CV_GRAY2RGB);
