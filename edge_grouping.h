@@ -17,53 +17,6 @@
 #include "Litterheaders.h"
 #include <algorithm>
 
-struct AO
-{
-    fullbits_int_t activeness{19}, lifetime{0}, abandoness{0}, objarea{0}, boxarea;
-    bool update;
-    cv::Point origin, endpoint, centre;
-
-    AO() = delete;
-    //original source had for 1st element update = true, and for any other new =false(actually missing),
-    //it seems like bug for me, so let all be true for now
-    AO(const cv::Rect& obje, const cv::Point& centre, bool update = true) :
-        boxarea(obje.width * obje.height),
-        update(update),
-        origin{},
-        endpoint{},
-        centre()
-    {
-        tick(obje, centre);
-    }
-
-    void tick(const cv::Rect& obje, const cv::Point& centre)
-    {
-        this->centre = centre;
-        origin   = {obje.x, obje.y};
-        endpoint = {obje.x + obje.width, obje.y + obje.height};
-        activeness = std::min(activeness + 1, static_cast<fullbits_int_t>(20));
-    }
-
-    bool operator==(const cv::Point& centre) const
-    {
-        return (abs(centre.x - this->centre.x) < 20 && abs(centre.y - this->centre.y) < 20);
-    }
-
-    bool operator==(const AO& atu) const
-    {
-        return std::abs(origin.x - atu.origin.x) < 20 && std::abs(origin.y - atu.origin.y) < 20
-               && std::abs(endpoint.x - atu.endpoint.x) < 20 && std::abs(endpoint.y - atu.endpoint.y) < 20;
-    }
-
-    bool active() const
-    {
-        return activeness > 0;
-    }
-};
-
-
-using AO_Collection = std::vector<AO>;
-
 
 template <class T>
 void sortX(std::vector<T>& src)
@@ -100,13 +53,9 @@ private:
     fullbits_int_t video_frame_index; //video frame index I think
 
 public:
-    fullbits_int_t lifetime{0};
-
     cv::Point origin{};
     cv::Point centre{};
     cv::Point endpoint{};
-
-    fullbits_int_t positiongroup{0};
 
     object() = delete;
     object(const cv::Point& centre, const cv::Rect& boxe, fullbits_int_t video_frame_index):
@@ -134,6 +83,20 @@ public:
         endpoint.y = boxe.y + boxe.height;
     }
 
+    void join(const object& src)
+    {
+        auto boxe = cv::Rect(origin, endpoint) | cv::Rect(src.origin, src.endpoint);
+        cv::Point centre((origin.x + src.origin.x) / 2, (origin.y + src.origin.y) / 2);
+        update(centre, boxe);
+        activeness = std::max(activeness, src.activeness) + 1;
+        //fixme: hmm not sure here ...maybe should take only witdth wout x here: endpoint.x = boxe.x + boxe.width;
+        //        this->centre = centre;
+        //        origin.x   = boxe.x;
+        //        origin.y   = boxe.y;
+        //        endpoint.x = boxe.width;
+        //        endpoint.y = boxe.height;
+    }
+
     bool active() const
     {
         return activeness > 0;
@@ -145,15 +108,10 @@ public:
         return active();
     }
 
-    bool deactivate() //returns true if object NOT active
+    bool deactivate()
     {
         --activeness;
-        return !active();
-    }
-
-    bool skip() const
-    {
-        return lifetime > 20 && positiongroup == 0;
+        return active();
     }
 
     void kill()
@@ -161,14 +119,11 @@ public:
         activeness = -100;
     }
 };
-
+using obj_collection = std::vector<object>;
 class objects
 {
 public:
-    AO_Collection abandonnes{};
-    fullbits_int_t compteur{0};
-    std::vector<object> candidat{};
-
+    obj_collection candidat{};
 public:
     cv::Point::value_type minDistance(const cv::Point &p1, const cv::Point &p2, const cv::Point &q1, const cv::Point &q2);
 
@@ -177,8 +132,6 @@ public:
 
     objects() = default;
     objects(long framesCount);
-private:
-    void grouping(size_t j);
 };
 
 #endif /* EDGE_GROUPING_H */

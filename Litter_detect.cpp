@@ -267,10 +267,9 @@ int main(int argc, char * argv[])
             ZeroedArray<uint8_t> canny(0);
             cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
 
-            sortX(abandoned_objects.abandonnes);
 
-            AO_Collection po;
-            po.reserve(abandoned_objects.abandonnes.size());
+            obj_collection po;
+            po.reserve(abandoned_objects.candidat.size());
 
             ZeroedArray<uint8_t> object_map(image.size());
             threshold(abandoned_map, object_map.getStorage(), aotime2, 255, THRESH_BINARY);
@@ -280,11 +279,12 @@ int main(int argc, char * argv[])
                 cv::Mat not_used; //by doing {} showing compiler we dont need that, so it will take care
                 cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
             }
-            for (auto& atu : abandoned_objects.abandonnes)
+            for (auto& atu : abandoned_objects.candidat)
             {
-                const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const AO & obj)
+                const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const object & obj)
                 {
-                    return obj == atu;
+                    return std::abs(obj.origin.x - atu.origin.x) < 20 && std::abs(obj.origin.y - atu.origin.y) < 20
+                           && std::abs(obj.endpoint.x - atu.endpoint.x) < 20 && std::abs(obj.endpoint.y - atu.endpoint.y) < 20;
                 });
                 if (process) continue;
 
@@ -308,24 +308,17 @@ int main(int argc, char * argv[])
                     results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
                     const static Scalar color(0, 0, 255);
                     rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
-                    atu.abandoness++;
-
-                    if (atu.abandoness > 0)
-                    {
-                        atu.update = false;
-                        atu.activeness = 200;
-                    }
                 }
             }
             //ok,those 2 take around -5 fps on i7
-            std::cout << "Objects count: abs=" << abandoned_objects.abandonnes.size() << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
+            //std::cout << "Objects count: " << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
             imshow("output", image);
             waitKey(10);
         }
         t = ((double) getTickCount() - t) / getTickFrequency();
         meanfps =  (1 / t) + meanfps;
         if (i % 50 == 0 )
-            std::cout << "FPS  " << meanfps / (i + 1) << std::endl;
+            std::cout << "FPS  " << meanfps / (i + 1) << ", Objects: " << abandoned_objects.candidat.size() << std::endl;
     }
     //std::cout << "mean FPS  " << meanfps / i << std::endl;
     //std::cout << "mean FPS region  " << meanfps_static / i  << std::endl;
