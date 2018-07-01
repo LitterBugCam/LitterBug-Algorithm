@@ -1,32 +1,33 @@
 #include "edge_grouping.h"
 #include <limits>
 
-using namespace cv;
-Mat  threshed;
+cv::Mat  threshed;
 
-Point::value_type objects::minDistance(const Point& p1, const Point& p2, const Point& q1, const Point& q2)
+cv::Point::value_type objects::minDistance(const cv::Point& p1, const cv::Point& p2, const cv::Point& q1, const cv::Point& q2)
 {
-    Point::value_type mi = std::numeric_limits<Point::value_type>::max();
+    using vt = cv::Point::value_type;
+    vt mi = std::numeric_limits<vt>::max();
+
     // p1
-    mi = min(mi, max(abs(p1.x - q1.x), abs(p1.y - q1.y)));
-    mi = min(mi, max(abs(p1.x - q1.x), abs(p1.y - q2.y)));
-    mi = min(mi, max(abs(p1.x - q2.x), abs(p1.y - q1.y)));
-    mi = min(mi, max(abs(p1.x - q2.x), abs(p1.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q1.x), std::abs<vt>(p1.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q1.x), std::abs<vt>(p1.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q2.x), std::abs<vt>(p1.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q2.x), std::abs<vt>(p1.y - q2.y)));
     //p2
-    mi = min(mi, max(abs(p2.x - q1.x), abs(p2.y - q1.y)));
-    mi = min(mi, max(abs(p2.x - q1.x), abs(p2.y - q2.y)));
-    mi = min(mi, max(abs(p2.x - q2.x), abs(p2.y - q1.y)));
-    mi = min(mi, max(abs(p2.x - q2.x), abs(p2.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q1.x), std::abs<vt>(p2.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q1.x), std::abs<vt>(p2.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q2.x), std::abs<vt>(p2.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q2.x), std::abs<vt>(p2.y - q2.y)));
     //p1xp2y
-    mi = min(mi, max(abs(p1.x - q1.x), abs(p2.y - q1.y)));
-    mi = min(mi, max(abs(p1.x - q1.x), abs(p2.y - q2.y)));
-    mi = min(mi, max(abs(p1.x - q2.x), abs(p2.y - q1.y)));
-    mi = min(mi, max(abs(p1.x - q2.x), abs(p2.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q1.x), std::abs<vt>(p2.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q1.x), std::abs<vt>(p2.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q2.x), std::abs<vt>(p2.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p1.x - q2.x), std::abs<vt>(p2.y - q2.y)));
     //p1yp2x
-    mi = min(mi, max(abs(p2.x - q1.x), abs(p1.y - q1.y)));
-    mi = min(mi, max(abs(p2.x - q1.x), abs(p1.y - q2.y)));
-    mi = min(mi, max(abs(p2.x - q2.x), abs(p1.y - q1.y)));
-    mi = min(mi, max(abs(p2.x - q2.x), abs(p1.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q1.x), std::abs<vt>(p1.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q1.x), std::abs<vt>(p1.y - q2.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q2.x), std::abs<vt>(p1.y - q1.y)));
+    mi = std::min<vt>(mi, std::max<vt>(std::abs<vt>(p2.x - q2.x), std::abs<vt>(p1.y - q2.y)));
     return mi;
 }
 
@@ -65,23 +66,18 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
 {
     (void)frame; //disabling unused warning
 
-    using namespace cv;
-    using namespace std;
     // cvtColor(map2, map2_temp, CV_GRAY2RGB);
-    vector<Rect> boxes;
-    vector<vector<Point>> contours;
-    vector<Vec4i> hierarchy;
-    findContours(image, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
+    std::vector<cv::Rect> boxes;
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(image, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 
     if (!contours.empty() && !hierarchy.empty())
     {
-
-        fullbits_int_t idx = 0;
-        for (; idx >= 0; idx = hierarchy[idx][0])
+        for (fullbits_int_t idx = 0; idx >= 0; idx = hierarchy.at(idx)[0])
         {
-            const vector<Point>& c = contours[idx];
+            const auto& c = contours.at(idx);
             if (arcLength(c, false) > 20)
-
                 boxes.push_back(boundingRect(c));
         }
     }
@@ -90,7 +86,7 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
     for (auto & boxe : boxes)
     {
         bool found = false;
-        Point2f sample;
+        cv::Point2f sample;
         sample.x = (float) (boxe.x + boxe.width / 2);
         sample.y = (float) (boxe.y + boxe.height / 2);
 
@@ -162,7 +158,7 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
         {
             //  cout << " efefefefef" << endl;
             it.skip = true;
-            const Rect tmp{it.origin.x, it.origin.y, it.endpoint.x - it.origin.x, it.endpoint.y - it.origin.y};
+            const cv::Rect tmp{it.origin.x, it.origin.y, it.endpoint.x - it.origin.x, it.endpoint.y - it.origin.y};
             abandonnes.emplace_back(tmp, it.centre);
         }
     }
@@ -171,7 +167,7 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
     for (size_t j = 0, sz = candidat.size(); j < sz; ++j)
     {
         fullbits_int_t label = candidat.at(j).positiongroup;
-        Rect obje;
+        cv::Rect obje;
         if (candidat.at(j).positiongroup != 0 && !candidat.at(j).proc)
             for (size_t e = 0, r = 0; e < sz; ++e, ++r)
             {
@@ -179,9 +175,9 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
                 {
                     candidat.at(e).proc = true;
                     if (r == 0)
-                        obje = Rect(candidat.at(j).origin, candidat.at(j).endpoint) | Rect(candidat.at(e).origin, candidat.at(e).endpoint);
+                        obje = cv::Rect(candidat.at(j).origin, candidat.at(j).endpoint) | cv::Rect(candidat.at(e).origin, candidat.at(e).endpoint);
                     else
-                        obje = Rect(candidat.at(e).origin, candidat[e].endpoint) | obje;
+                        obje = cv::Rect(candidat.at(e).origin, candidat[e].endpoint) | obje;
                 }
             }
         const cv::Point centre(obje.x + obje.width / 2, obje.y + obje.height / 2);
