@@ -192,7 +192,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
 
     //segments parralelism with boundaries
     float anglesum_left = 0, anglesum_top = 0, anglesum_bot = 0, anglesum_right = 0;
-    fullbits_int_t left = 0, right = 0, bot = 0, top = 0;
+    int64_t left = 0, right = 0, bot = 0, top = 0;
 
 
     const auto static topleft = [](fullbits_int_t a, fullbits_int_t b)
@@ -260,10 +260,17 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     if (bot == 0) bot = 1000000;
     if (right == 0) right = 1000000;
 
+    //fixme: forced usage of 64 bits here to avoid overflows...but on 32 system it can be slower (still faster then doing floats)
+    //1000000 ^ 2 = 1e12 and maximum for 64bits is 2^64 = 1.8e19
+    const static auto spow = [](int64_t val)->uint64_t
+    {
+        return val * val;
+    };
 
 
-    float leftdiff = 1 / pow((h - rr) - (float) left, 2), rightdiff = 1 / pow((h - rr) - (float) right, 2),
-          topdiff = 1 / pow((w - cc) - (float) top, 2), botdiff = 1 / pow((w - cc) - (float) bot, 2);
+
+    float leftdiff = 1. / spow(h - rr - left), rightdiff = 1. / spow(h - rr - right),
+          topdiff = 1. / spow(w - cc - top), botdiff = 1. / spow(w - cc - bot);
 
     circularity = (1000000000 * leftdiff * rightdiff * topdiff * botdiff); //pow(number,2);
 
