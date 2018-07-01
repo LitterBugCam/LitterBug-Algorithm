@@ -173,7 +173,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     //~ if(score>0.001) waitKey(0);
 
     //segments parralelism with boundaries
-    float anglesum_left = 0, anglesum_top = 0, anglesum_bot = 0, anglesum_right = 0;
+    // float anglesum_left = 0, anglesum_top = 0, anglesum_bot = 0, anglesum_right = 0;
     int64_t left = 0, right = 0, bot = 0, top = 0;
 
 
@@ -191,7 +191,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     {
         if (segw[i] >= 1) continue;
 
-        auto angle = std::abs<float>(sin(meanO[i]));
+        const auto angle = std::abs<float>(sin(meanO[i]));
         // pow(angle, 2);
 
         const int yeq1 =  rr + (h - rr) / 3;
@@ -201,7 +201,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         if (meanX[i] < topleft(cc, w) && meanY[i] > yeq1 && meanY[i] < yeq2)
         {
 
-            anglesum_top += std::abs<float>(angle - 1) * meanNB[i];
+
             if (std::abs<float>(angle - 1) < 0.5)   top += meanNB[i];
 
         }
@@ -209,7 +209,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         if (meanX[i] > botright(cc, w) && meanY[i] >  yeq1  && meanY[i] < yeq2)
         {
 
-            anglesum_bot += std::abs<float>(angle - 1) * meanNB[i];
+
             if (std::abs<float>(angle - 1) < 0.5)    bot += meanNB[i];
 
         }
@@ -220,17 +220,13 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         //left boundary
         if (meanY[i] < topleft(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
         {
-
-            anglesum_left += std::abs<float>(angle * meanNB[i]);
             if (std::abs<float>(angle) < 0.5)  left += meanNB[i];
-
         }
 
         //right boundary
         if (meanY[i] > botright(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
         {
 
-            anglesum_right += std::abs<float>(angle * meanNB[i]);
             if (std::abs<float>(angle) < 0.5)   right += meanNB[i];
 
         }
