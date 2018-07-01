@@ -173,7 +173,6 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     //~ if(score>0.001) waitKey(0);
 
     //segments parralelism with boundaries
-    // float anglesum_left = 0, anglesum_top = 0, anglesum_bot = 0, anglesum_right = 0;
     int64_t left = 0, right = 0, bot = 0, top = 0;
 
 
@@ -192,45 +191,29 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         if (segw[i] >= 1) continue;
 
         const auto angle = std::abs<float>(sin(meanO[i]));
-        // pow(angle, 2);
 
-        const int yeq1 =  rr + (h - rr) / 3;
-        const int yeq2 =  rr + 2 * (h - rr) / 3;
-
-        //top boundary
-        if (meanX[i] < topleft(cc, w) && meanY[i] > yeq1 && meanY[i] < yeq2)
+        if (std::abs<float>(angle - 1) < 0.5)
         {
+            const int yeq1 =  rr + (h - rr) / 3;
+            const int yeq2 =  rr + 2 * (h - rr) / 3;
 
+            if (meanX[i] < topleft(cc, w) && meanY[i] > yeq1 && meanY[i] < yeq2)
+                top += meanNB[i];
 
-            if (std::abs<float>(angle - 1) < 0.5)   top += meanNB[i];
-
-        }
-        //bot boundary
-        if (meanX[i] > botright(cc, w) && meanY[i] >  yeq1  && meanY[i] < yeq2)
-        {
-
-
-            if (std::abs<float>(angle - 1) < 0.5)    bot += meanNB[i];
-
+            if (meanX[i] > botright(cc, w) && meanY[i] >  yeq1  && meanY[i] < yeq2)
+                bot += meanNB[i];
         }
 
-        const int xeq1 = cc + 2 * (w - cc) / 3;
-        const int xeq2 = cc + (w - cc) / 3;
-
-        //left boundary
-        if (meanY[i] < topleft(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
+        if (std::abs<float>(angle) < 0.5)
         {
-            if (std::abs<float>(angle) < 0.5)  left += meanNB[i];
+            const int xeq1 = cc + 2 * (w - cc) / 3;
+            const int xeq2 = cc + (w - cc) / 3;
+
+            if (meanY[i] < topleft(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
+                left += meanNB[i];
+            if (meanY[i] > botright(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
+                right += meanNB[i];
         }
-
-        //right boundary
-        if (meanY[i] > botright(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
-        {
-
-            if (std::abs<float>(angle) < 0.5)   right += meanNB[i];
-
-        }
-
     }
 
     if (left == 0) left = 1000000;
