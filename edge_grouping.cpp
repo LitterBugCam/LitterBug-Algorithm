@@ -128,17 +128,19 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
 
     for (size_t j = 0, sz = candidat.size(); j < sz; ++j)
     {
+        const auto& cj = candidat.at(j);
         fullbits_int_t label = candidat.at(j).positiongroup;
         cv::Rect obje;
-        if (candidat.at(j).positiongroup != 0)
-            for (size_t e = 0, r = 0; e < sz; ++e, ++r)
+        if (label != 0)
+            for (size_t e = j, r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
             {
-                if (e != j && label == candidat.at(e).positiongroup)//&& candidat[e].positiongroup!=0 )
+                const auto& ce = candidat.at(e);
+                if (e != j && label == ce.positiongroup)//&& candidat[e].positiongroup!=0 )
                 {
                     if (r == 0)
-                        obje = cv::Rect(candidat.at(j).origin, candidat.at(j).endpoint) | cv::Rect(candidat.at(e).origin, candidat.at(e).endpoint);
+                        obje = cv::Rect(cj.origin, cj.endpoint) | cv::Rect(ce.origin, ce.endpoint); //union of 2 Rects
                     else
-                        obje = cv::Rect(candidat.at(e).origin, candidat[e].endpoint) | obje;
+                        obje = cv::Rect(ce.origin, ce.endpoint) | obje;
                 }
             }
         const cv::Point centre(obje.x + obje.width / 2, obje.y + obje.height / 2);
