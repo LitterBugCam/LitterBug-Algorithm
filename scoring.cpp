@@ -135,14 +135,14 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         for (fullbits_int_t c = cc + 2; c < w - 1; ++c)
         {
 
-            fullbits_int_t s0 = segmap.at<segmap_t>(c, r);
+            const fullbits_int_t s0 = segmap.at<segmap_t>(c, r);
             if (s0 <= 0)
                 continue;
 
             for (fullbits_int_t rd = -2; rd <= 2; ++rd)
                 for (fullbits_int_t cd = -2; cd <= 2; ++cd)
                 {
-                    fullbits_int_t s1 = segmap.at<segmap_t>(c + cd, r + rd);
+                    const fullbits_int_t s1 = segmap.at<segmap_t>(c + cd, r + rd);
                     if (s1 <= s0)
                         continue;
                     if (afinityidx.count(s0) && afinityidx.at(s0).count(s1))
