@@ -4,8 +4,7 @@ bool stop;
 std::vector<int> segmag;
 
 cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1, object_map;
-std::vector<std::vector<float>> afinity;
-std::vector<std::vector<int>> afinityidx;
+
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
 std::vector<float > segw;
@@ -24,7 +23,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
             {
 
                 float omin = 1000;
-                fullbits_int_t cs, rs;
+                fullbits_int_t cs = 0, rs = 0;
                 bool neib = false;
                 bool isolated = true;
 
@@ -84,17 +83,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                     }
             }
         }
-    afinityidx.clear();
-    afinity.clear();
-    afinityidx.resize(segcount);
-    afinity.resize(segcount);
 
-    //ensuring no allocations in deep loops below, 30 is multiply of all loops there
-    for (size_t i = 0; i < segcount; ++i)
-    {
-        afinityidx.at(i).reserve(30);
-        afinity.at(i).reserve(30);
-    }
 
     //prepare data for computing affinities
     segw.assign(segcount, 0);
@@ -139,7 +128,15 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     //compute segment convexity and degree of  parallelism with bounding box boundaries
 
 
+    std::vector<std::vector<float>> afinity(segcount);
+    std::vector<std::vector<int>>  afinityidx(segcount);
 
+    //ensuring no allocations in deep loops below, 30 is multiply of all loops there
+    for (size_t i = 0; i < segcount; ++i)
+    {
+        afinityidx.at(i).reserve(30);
+        afinity.at(i).reserve(30);
+    }
 
     //compute inter-segments affinities
     for (fullbits_int_t r = rr + 2; r < h - 1; r++)
@@ -163,9 +160,10 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                 }))
                     continue;
 
-                    float o = atan2(meanY[s0] - meanY[s1], meanX[s0] - meanX[s1]) + (PI / 2);
-                    auto  a = std::abs<float>(cos(meanO[s0] - o) * cos(meanO[s1] - o));
-                    a = pow(a, 2);
+                    const static float pi_2 = (PI) / 2.f;
+                    float o = std::atan2(meanY[s0] - meanY[s1], meanX[s0] - meanX[s1]) + pi_2;
+                    auto  a = std::abs<float>(std::cos(meanO[s0] - o) * std::cos(meanO[s1] - o));
+                    a *= a;
                     afinity[s0].push_back(a);
                     afinityidx[s0].push_back(s1);
                     afinity[s1].push_back(a);
