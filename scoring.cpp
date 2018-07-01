@@ -2,7 +2,7 @@
 #include "scoring.h"
 #include <map>
 
-cv::Mat foreground1, dirsum, bw, bw1;
+cv::Mat foreground1, bw, bw1;
 
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
@@ -12,8 +12,9 @@ using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all 
 
 void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
-    const auto mhw = std::max(h, w); //not sure, i'm lost when to use h or w ...so just let it be square so all indexes are valid
-    cv::Mat segmap = cv::Mat(mhw + 1, mhw + 1, cv::DataType<segmap_t>::type, cv::Scalar(0)); //(and +1 because of loops below)
+    const auto mhw = std::max(h, w) + 1; //not sure, i'm lost when to use h or w ...so just let it be square so all indexes are valid (+1 must be for both dimensions)
+    cv::Mat segmap(mhw, mhw, cv::DataType<segmap_t>::type, cv::Scalar(0));
+    cv::Mat dirsum(mhw, mhw, cv::DataType<float>::type, cv::Scalar(0));
 
     using namespace cv;
     size_t segcount = 1;

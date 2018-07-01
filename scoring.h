@@ -25,7 +25,7 @@ void inline divideArr(std::vector<C>& arr, const std::vector<T>& by)
     ALG_NS::transform (arr.cbegin(), arr.cend(), by.cbegin(), arr.begin(), std::divides<C>());
 }
 
-extern cv::Mat foreground1, dirsum, bw, bw1;
+extern cv::Mat foreground1, bw, bw1;
 extern std::vector< fullbits_int_t >  overlap_seg;
 extern std::vector< fullbits_int_t > seg_processed;
 extern bool debug;
