@@ -1,5 +1,7 @@
 #include <cmath>
 #include "scoring.h"
+#include <map>
+
 bool stop;
 std::vector<int> segmag;
 
