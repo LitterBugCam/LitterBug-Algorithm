@@ -1,439 +1,358 @@
-
 #include "edge_grouping.h"
 #include "scoring.h"
 #include "parameters.h"
 #include <omp.h>
+#include <map>
+#include <functional>
 
-objects abandoned_objects;
+//fixme: all those DECLARE_PARAM can be rewritten using C++17 and std::variant
+//see here: https://habr.com/post/415737/
 
-Mat image, gray, F;
-Mat grad_x, D_Sx, B_Sx, F_Sx;
-Mat grad_y, D_Sy, B_Sy, F_Sy;
-Mat result, threshed1, accumulation;
-int vis;
-float meanfps = 0;
-float meanfps_static = 0;
+//this must be once per program - this allocates actual memory
+#define DECLARE_PARAM(TYPE, NAME) TYPE NAME
+//important parameters
+DECLARE_PARAM(float, staticness_th) ; // Staticness score threshold (degree of the object being static)
+DECLARE_PARAM(double, objectness_th); //  Objectness score threshold (probability that the rectangle contain an object)
+DECLARE_PARAM(fullbits_int_t, aotime); //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
+DECLARE_PARAM(fullbits_int_t, aotime2); // Half or more of aotime
+DECLARE_PARAM(double, alpha); // background scene learning rate
+DECLARE_PARAM(double, fore_th); // Threshold moving edges segmentation
+
+
+//Less important parameters
+DECLARE_PARAM(bool, low_light); // if night scene
+DECLARE_PARAM(fullbits_int_t, frameinit); // Frames needed for learning the background
+DECLARE_PARAM(fullbits_int_t, framemod);
+DECLARE_PARAM(fullbits_int_t, framemod2);
+DECLARE_PARAM(fullbits_int_t, minsize); // Static object minimum size
+DECLARE_PARAM(float, resize_scale); // Image resize scale
+#undef DECLARE_PARAM
+
+
+//and 1 more copy-paste (MUST BE SAME AS ABOVE!) which defines relation between string-name and variables above
+#define DECLARE_PARAM(TYPE, NAME) {#NAME, [](const std::string& src){setParam<TYPE>(src, &NAME);}}
+const static std::map<std::string, std::function<void(const std::string& src)>> param_setters =
+{
+    //important parameters
+    DECLARE_PARAM(float, staticness_th), // Staticness score threshold (degree of the object being static)
+    DECLARE_PARAM(double, objectness_th), //  Objectness score threshold (probability that the rectangle contain an object)
+    DECLARE_PARAM(fullbits_int_t, aotime), //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
+    DECLARE_PARAM(fullbits_int_t, aotime2), // Half or more of aotime
+    DECLARE_PARAM(double, alpha), // background scene learning rate
+    DECLARE_PARAM(double, fore_th), // Threshold moving edges segmentation
+
+
+    //Less important parameters
+    DECLARE_PARAM(bool, low_light), // if night scene
+    DECLARE_PARAM(fullbits_int_t, frameinit), // Frames needed for learning the background
+    DECLARE_PARAM(fullbits_int_t, framemod),
+    DECLARE_PARAM(fullbits_int_t, framemod2),
+    DECLARE_PARAM(fullbits_int_t, minsize), // Static object minimum size
+    DECLARE_PARAM(float, resize_scale), // Image resize scale
+};
+#undef DECLARE_PARAM
 
 int main(int argc, char * argv[])
- {
-//    cout<<"optimized ? "<<cv::useOptimized()<<endl;;
-
-      ofstream results;
-  results.open ("detected_litters.txt");
-  results<<"        detected litters \n\n";
-       ifstream File( "parameters.txt" );
-    static const std::streamsize max = std::numeric_limits<std::streamsize>::max();
-std::vector<int> values;
-double value;
-File.ignore(max, '=');
-short f=1;
-while(f<=12)
 {
-    File >> value;
-   // values.push_back(value);
-        switch (f)
-                
-                {
-            case 1: staticness_th=(double) value;break;
-            case 2: objectness_th=(double) value;break;
-            case 3: aotime=(int) value;break;
-        case 4: aotime2=(int) value;break;
-        case 5: alpha=(double) value;break;
-        case 6: fore_th=(int) value;break;
-        case 7: frameinit=(int) value;break;
-        case 8: low_light=(bool) value;break;
-        case 9: framemod=(int) value;break;
-        case 10: framemod2=(int) value;break;
-        case 11: minsize=(int) value;break;
-        case 12: resize_scale=(double) value;break;
-        
-                }   
-        File.ignore(max, '=');
-        f++;
+    using namespace cv;
 
-}
-    char * videopath;
+    float meanfps = 0;
+    float meanfps_static = 0;
+
+
+    std::ofstream results;
+    results.open ("detected_litters.txt");
+    results << "        detected litters \n\n";
+    std::ifstream paramsFile( "parameters.txt" );
+
+    if (!paramsFile.is_open())
+    {
+        std::cerr << "Cannot load parameters.txt" << std::endl;
+        exit(2);
+    }
+
+    for (std::string tmp; !paramsFile.eof();)
+    {
+        std::getline(paramsFile, tmp);
+        auto peq = tmp.find_first_of('=');
+        if (peq != std::string::npos)
+        {
+            auto name = trim_copy(tmp.substr(0, peq ));
+            auto val  = trim_copy(tmp.substr(peq + 1));
+            std::cout << "Parsing: " << name << " = " << val << std::endl;
+            if (param_setters.count(name))
+                param_setters.at(name)(val);
+            else
+                std::cerr << "Unknown parameter line: " << tmp << std::endl;
+        }
+    }
+    char * videopath = nullptr;
 
 
     if (argc < 2)
-        cout << "please specify the video path" << endl;
+    {
+        std::cout << "please specify the video path" << std::endl;
+        exit(1);
+    }
     else
         videopath = argv[1];
 
-    VideoCapture capture(videopath);
+
+    cv::VideoCapture capture(videopath);
+    const auto framesCount = static_cast<long>(capture.get(CV_CAP_PROP_FRAME_COUNT));
+    capture.set(CV_CAP_PROP_BUFFERSIZE, 1);
 
 
-    Mat fore;
-    //capture.set(CV_CAP_PROP_POS_FRAMES, 255);
+    cv::Mat image;
     capture >> image;
+    if (image.empty())
+    {
+        std::cerr << "Something wrong. 1st frame is empty. Cant continue." << std::endl;
+        exit(3);
+    }
 
     if (resize_scale != 1)
-        resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
+        resize(image, image, cv::Size(image.cols * resize_scale, image.rows * resize_scale));
 
-  //  image = image(Rect(20, 20, image.cols - 40, image.rows - 40));
-    //image = image(Rect(0, 0, image.cols, image.rows - 15));
+    const auto zeroMatrix8U  = cv::Mat::zeros(image.size(), CV_8UC1);
+    const auto zeroMatrix16U = cv::Mat::zeros(image.size(), CV_16U);
+    const auto zeroMatrix32F = cv::Mat::zeros(image.size(), CV_32F);
+    const auto ffMatrix8UC3  = cv::Mat::ones(image.size(), CV_8UC1) * 255;
 
-    //capture.set(CV_CAP_PROP_FPS,60);
-    cv::Mat abandoned_map = Mat::zeros(image.size(), CV_8UC1);
-    abandoned_map.copyTo(threshed1);
-    abandoned_map.copyTo(result);
-    abandoned_map.copyTo(object_map);
 
-    Mat segmap1 = Mat::zeros(image.size(), CV_16U);
-    Mat dirsum1 = Mat::zeros(image.size(), CV_32F);
-dirsum1.copyTo(D_Sx);
-dirsum1.copyTo(D_Sy);
-
-    Mat input;
-    int i = 0;
-
+    cv::Mat abandoned_map = zeroMatrix8U;
 
     double alpha_S;
     double alpha_init = 0.01;
     alpha_S = alpha_init;
-        // imshow("gray",image);
+    // imshow("gray",image);
 
-     
-    while (1) {
-
-        
-        
+    objects abandoned_objects(framesCount);
+    cv::Mat B_Sx, B_Sy;
+    for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
+    {
         if (i > frameinit) alpha_S = alpha;
-
-        capture >> image;
-        if(image.empty())
-            break;
-      //  image = image(Rect(20, 20, image.cols - 40, image.rows - 40));    
+        if (i % framemod != 0 && i > frameinit)
+            continue;
 
         if (resize_scale != 1)
             resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
 
-      //  image.copyTo(input);
+        auto t = static_cast<double>(getTickCount());
 
-        if (i % framemod != 0 && i > frameinit) {
+        //  cout << "frame " << i << endl;
+        cv::Mat F_Sx = zeroMatrix8U;
+        cv::Mat F_Sy = zeroMatrix8U;
 
-            i++;
-            continue;
-        }
-        double t = (double) getTickCount();
-
-      //  cout << "frame " << i << endl;
-        cv::Mat F_Sx = Mat::zeros(image.size(), CV_8UC1);
-        cv::Mat F_Sy = Mat::zeros(image.size(), CV_8UC1);
-
-
-        cvtColor(image, gray, CV_BGR2GRAY);
-        // imshow("gray",gray);
-        blur(gray, gray, Size(3, 3));
+        cv::Mat gray;
+        cv::cvtColor(image, gray, CV_BGR2GRAY);
+        cv::blur(gray, gray, Size(3, 3));
 
         if (low_light)
             gray = gray * 1.5;
 
-
-        Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
-        Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+        cv::Mat grad_x, grad_y;
+        cv::Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+        cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
 
 
         cv::Mat dir;
         cv::cartToPolar(grad_x, grad_y, normm, dir, true);
 
-
-        if (i == 0) {
+        object_map = zeroMatrix8U;
+        if (i == 0)
+        {
             // X direction
             grad_x.copyTo(B_Sx);
 
             // Y direction
             grad_y.copyTo(B_Sy);
-
-
         }
-
-        else {
-            
-    
-
-           D_Sx = grad_x - B_Sx;
-          B_Sx = B_Sx + alpha_S*D_Sx;
-     
-         
-             D_Sy = grad_y - B_Sy;
-          B_Sy = B_Sy + alpha_S*D_Sy;
-           
-       result= result.zeros(image.size(), CV_8UC1);
-    threshed1   =threshed1.zeros(image.size(), CV_8UC1);
-      object_map = object_map.zeros(image.size(), CV_8UC1);
+        else
+        {
+            cv::Mat D_Sx = grad_x - B_Sx;
+            B_Sx = B_Sx + alpha_S * D_Sx;
 
 
-         if (i % framemod2 == 0)
-      abandoned_map-=1;
-      
-    
-	
-			for (int j = 1; j < image.rows - 1; j++) {
+            cv::Mat D_Sy = grad_y - B_Sy;
+            B_Sy = B_Sy + alpha_S * D_Sy;
 
 
 
+            if (i % framemod2 == 0)
+                abandoned_map -= 1;
 
-	    //float* B_Sy_ptr = B_Sy.ptr<float>(j)+1;
-	//	    float* B_Sx_ptr = B_Sx.ptr<float>(j)+1;
-          // uchar* threshed1_ptr = threshed1.ptr<uchar>(j)+1;
 
-				//pointers declaration
-				//abandoned map
-				//cout<<"row "<<j<<endl;
-                uchar* abandoned_map_ptr = abandoned_map.ptr<uchar>(j)+1;
-                 uchar* abandoned_map_ptr_forward = abandoned_map.ptr<uchar>(j+1)+1;
-                uchar* abandoned_map_ptr_back = abandoned_map.ptr<uchar>(j-1)+1;
 
-                const uchar* abandoned_map_endPixel = abandoned_map_ptr + abandoned_map.cols -1;
-                
-                //results
-               // uchar* result_ptr = result.ptr<uchar>(j)+1;
-               // const uchar* result_endPixel = result_ptr + abandoned_map.cols -1;
-                
-                        //object_map
-                //uchar* object_map_ptr = object_map.ptr<uchar>(j)+1;
-                //const uchar* object_map_endPixel = object_map_ptr + abandoned_map.cols-1;
-                
-                	//F_Sx
-                uchar* F_Sx_ptr = F_Sx.ptr<uchar>(j)+1;
+            for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
+            {
+                uchar* abandoned_map_ptr = abandoned_map.ptr<uchar>(j) + 1;
+                uchar* abandoned_map_ptr_forward = abandoned_map.ptr<uchar>(j + 1) + 1;
+                uchar* abandoned_map_ptr_back = abandoned_map.ptr<uchar>(j - 1) + 1;
+
+                const uchar* abandoned_map_endPixel = abandoned_map_ptr + abandoned_map.cols - 1;
+
+                //F_Sx
+                uchar* F_Sx_ptr = F_Sx.ptr<uchar>(j) + 1;
                 //const uchar* F_Sx_endPixel = F_Sx_ptr + abandoned_map.cols-1;
-                
-                	//F_Sy
-              uchar* F_Sy_ptr = F_Sy.ptr<uchar>(j)+1;
-               // const uchar* F_Sy_endPixel = F_Sy_ptr + abandoned_map.cols -1;
-                
-                	//grad_x
-                float* grad_x_ptr = grad_x.ptr<float>(j)+1;
-                //const float* grad_x_endPixel = grad_x_ptr + abandoned_map.cols-1;
-                
-                	//grad_y
-              float* grad_y_ptr = grad_y.ptr<float>(j)+1;
-               // const float* grad_y_endPixel = grad_y_ptr + abandoned_map.cols-1;
 
-				
-				
-					//D_Sx
-                float* D_Sx_ptr = D_Sx.ptr<float>(j)+1;
+                //F_Sy
+                uchar* F_Sy_ptr = F_Sy.ptr<uchar>(j) + 1;
+                // const uchar* F_Sy_endPixel = F_Sy_ptr + abandoned_map.cols -1;
+
+                //grad_x
+                float* grad_x_ptr = grad_x.ptr<float>(j) + 1;
+                //const float* grad_x_endPixel = grad_x_ptr + abandoned_map.cols-1;
+
+                //grad_y
+                float* grad_y_ptr = grad_y.ptr<float>(j) + 1;
+                // const float* grad_y_endPixel = grad_y_ptr + abandoned_map.cols-1;
+
+
+                //D_Sx
+                float* D_Sx_ptr = D_Sx.ptr<float>(j) + 1;
                 //const float* D_Sx_endPixel = D_Sx_ptr + abandoned_map.cols-1;
-                
-                	//D_Sy
-              float* D_Sy_ptr = D_Sy.ptr<float>(j)+1;
+
+                //D_Sy
+                float* D_Sy_ptr = D_Sy.ptr<float>(j) + 1;
                 //const float* D_Sy_endPixel = D_Sy_ptr + abandoned_map.cols-1;
 
-               
-            	//for (int k = 1; k < image.cols - 1; k++) {
-          while(abandoned_map_ptr != abandoned_map_endPixel) {
 
-//  *D_Sx_ptr=*grad_x_ptr- *B_Sx_ptr;
-  //         *B_Sx_ptr=*B_Sx_ptr+alpha_S**D_Sx_ptr;
-           
-    //         *D_Sy_ptr=*grad_y_ptr- *B_Sy_ptr;
-      //     *B_Sy_ptr=*B_Sy_ptr+alpha_S**D_Sy_ptr;
-					
-					//cout<<"pixel value"<<(uint)*abandoned_map_ptr<<endl;
-                 //   if (i % framemod2 == 0)
-                   //     if (*abandoned_map_ptr>= 1)//&& stat.at<uchar>(j,k)==0)
-                     //       *abandoned_map_ptr -= 1;
+                //for (fullbits_int_t k = 1; k < image.cols - 1; k++) {
+                while (abandoned_map_ptr != abandoned_map_endPixel)
+                {
+                    if (abs(*D_Sx_ptr) > fore_th && abs(*grad_x_ptr) >= 20) *F_Sx_ptr = 255;
+                    if (abs(*D_Sy_ptr) > fore_th && abs(*grad_y_ptr) >= 20) *F_Sy_ptr = 255;
 
-                    if (abs(*D_Sx_ptr) > fore_th && abs(*grad_x_ptr) >= 20) *F_Sx_ptr= 255;
-					if (abs(*D_Sy_ptr) > fore_th && abs(*grad_y_ptr) >= 20) *F_Sy_ptr= 255;
-					
-								// cout<<"Fx value"<<(float)abs(*grad_y_ptr)<<endl;
+                    // cout<<"Fx value"<<(float)abs(*grad_y_ptr)<<endl;
 
-                    if (i > frameinit && i % framemod2 == 0) {
+                    if (i > frameinit && i % framemod2 == 0)
+                    {
                         //alpha_S = 0.0005;
 
-                        if (*F_Sx_ptr== 255 || *F_Sy_ptr== 255)//&& abandoned_map.at<uchar>(j,k)<255) 					
+                        if (*F_Sx_ptr == 255 || *F_Sy_ptr == 255) //&& abandoned_map.at<uchar>(j,k)<255)
                             *abandoned_map_ptr += 2;
 
-                       // for (int r0 = -1; r0 <= 1; r0++)
+                        // for (fullbits_int_t r0 = -1; r0 <= 1; r0++)
                         //{
-                            for (int c0 = -1; c0 <= 1; c0++) {
-                               // int j1 = j + r0;
-                                //int k1 = k + c0;
-                                // 60-30 PETS 120-80 AVSS
-                                
-          if ((*abandoned_map_ptr+c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
-                                    *abandoned_map_ptr = aotime;
-                                    
- if ((*abandoned_map_ptr_forward+c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
-                                    *abandoned_map_ptr = aotime;                                    
-							
- if ((*abandoned_map_ptr_back+c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
-                                    *abandoned_map_ptr = aotime;							
-							}
-                          //  }
-                        // * result_ptr=0;
-                        // *     object_map_ptr=0;
-                      // *threshed1_ptr = 0;
+                        for (fullbits_int_t c0 = -1; c0 <= 1; ++c0)
+                        {
+                            // fullbits_int_t j1 = j + r0;
+                            //fullbits_int_t k1 = k + c0;
+                            // 60-30 PETS 120-80 AVSS
 
-                      // threshed1.at<uchar>(j, k) = 0;
-                       //result.at<uchar>(j, k) = 0;
-                     //object_map.at<uchar>(j, k) = 0;
-                  //      if (*abandoned_map_ptr > aotime) {
-                    //        *result_ptr = 255;
-                            //threshed1.at<uchar>(j, k) = 220;
-                      //  }
-                      //  if (abandoned_map.at<uchar>(j, k) > 5 && abandoned_map.at<uchar>(j, k) < aotime)
-                           // threshed1.at<uchar>(j, k) = 30;
+                            if ((*abandoned_map_ptr + c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
+                                *abandoned_map_ptr = aotime;
 
-                        //if (*abandoned_map_ptr > aotime2)
-                         
-                          //  *object_map_ptr = 255;
-                     
+                            if ((*abandoned_map_ptr_forward + c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
+                                *abandoned_map_ptr = aotime;
 
+                            if ((*abandoned_map_ptr_back + c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
+                                *abandoned_map_ptr = aotime;
+                        }
                     }
-                   abandoned_map_ptr++;
-               //object_map_ptr++;
-				F_Sy_ptr++;
-				F_Sx_ptr++;
-				grad_x_ptr++;
-				grad_y_ptr++;
-				//result_ptr++;
-				D_Sx_ptr++;
-				D_Sy_ptr++;
-				abandoned_map_ptr_forward++;
-				abandoned_map_ptr_back++;
-
-				//B_Sx_ptr++;
-				//B_Sy_ptr++;
+                    ++abandoned_map_ptr;
+                    //object_map_ptr++;
+                    ++F_Sy_ptr;
+                    ++F_Sx_ptr;
+                    ++grad_x_ptr;
+                    ++grad_y_ptr;
+                    //result_ptr++;
+                    ++D_Sx_ptr;
+                    ++D_Sy_ptr;
+                    ++abandoned_map_ptr_forward;
+                    ++abandoned_map_ptr_back;
                 }
-         
-
-
             }
-threshold(abandoned_map,result, aotime, 255, THRESH_BINARY);
-		threshold(abandoned_map,object_map, aotime2, 255, THRESH_BINARY);
-      double t2 = ((double) getTickCount() - t) / getTickFrequency();
-//      cout << " static region FPS  " << 1 / t2 << endl;
-              meanfps_static = meanfps_static + (1 / t2);
-
-
-
-//            F = F_Sx + F_Sy;
-            //Mat  map2;
-
-//           bitwise_not(abandoned_map, accumulation);
-//           imshow("accumulation",accumulation);
-           // abandoned_map.copyTo(map2);
+            cv::Mat result     = zeroMatrix8U;
+            threshold(abandoned_map, result, aotime, 255, THRESH_BINARY);
+            threshold(abandoned_map, object_map, aotime2, 255, THRESH_BINARY);
+            double t2 = ((double) getTickCount() - t) / getTickFrequency();
+            //      cout << " static region FPS  " << 1 / t2 << endl;
+            meanfps_static = meanfps_static + (1 / t2);
             abandoned_objects.extractObject(result, image, i, abandoned_map);
             cv::Canny(gray, bw, 30, 30 * 3, 3);
 
-            Mat gg;
-             dir1 = dir*(PI / 180);
-           // cv::cartToPolar(grad_x, grad_y, gg, dir1);
-//            cv::Mat finalmap1(image.size(), CV_8UC3, Scalar(255, 255, 255));
-  //       finalmap = finalmap1;
-//             finalmap.create(image.size(), CV_8UC3, Scalar(255, 255, 255));
-    finalmap.create(image.rows, image.cols, CV_8UC3);
-            finalmap=Scalar::all(255);
+            constexpr auto pi_180 = (PI) / 180.;
+            dir1 = dir * pi_180;
+            finalmap = ffMatrix8UC3;
 
             abandoned_objects.processed_objects.clear();
             stop = false;
 
-            bool enter = false;
-            for (int u = 0; u < abandoned_objects.abandonnes.size(); u++) {
+            //fixme: vectors change sizes inside loops...should it be so ? I guess it is logical error there which leads to degrading fps....
+            for (size_t u = 0; u < abandoned_objects.abandonnes.size(); ++u)
+            {
                 bool process = false;
-                for (int e = 0; e < abandoned_objects.processed_objects.size(); e++) {
+                for (size_t e = 0; e < abandoned_objects.processed_objects.size(); ++e)
+                {
 
                     if (abs(abandoned_objects.processed_objects[e].origin.x - abandoned_objects.abandonnes[u].origin.x) < 20 && abs(abandoned_objects.processed_objects[e].origin.y - abandoned_objects.abandonnes[u].origin.y) < 20
-                            && abs(abandoned_objects.processed_objects[e].endpoint.x - abandoned_objects.abandonnes[u].endpoint.x) < 20 && abs(abandoned_objects.processed_objects[e].endpoint.y - abandoned_objects.abandonnes[u].endpoint.y) < 20) {
+                            && abs(abandoned_objects.processed_objects[e].endpoint.x - abandoned_objects.abandonnes[u].endpoint.x) < 20 && abs(abandoned_objects.processed_objects[e].endpoint.y - abandoned_objects.abandonnes[u].endpoint.y) < 20)
+                    {
                         process = true;
-
                         break;
                     }
                 }
                 if (process) continue;
 
-                AO obj;
-                obj = abandoned_objects.abandonnes[u];
-                abandoned_objects.processed_objects.push_back(obj);
+                //damn, do they mean copies really here, or huge bug?
+                //AO obj = abandoned_objects.abandonnes.at(u);
+                //abandoned_objects.processed_objects.push_back(obj);
+
+                //lets assume those copies were bug (yeh, +1fps at the very end of test movie)
+                abandoned_objects.processed_objects.push_back(abandoned_objects.abandonnes.at(u));
+                AO& obj = abandoned_objects.processed_objects.back();
+
                 if (abs(obj.origin.y - obj.endpoint.y) < 15 || abs(obj.origin.x - obj.endpoint.x) < minsize) continue;
 
                 if (obj.origin.y < 6) obj.origin.y = 6;
                 if (obj.origin.x < 6) obj.origin.x = 6;
-                if (obj.endpoint.y> int(image.rows - 6)) obj.endpoint.y = image.rows - 6;
-                if (obj.endpoint.x> int(image.cols - 6)) obj.endpoint.x = image.cols - 6;
+                if (obj.endpoint.y > int(image.rows - 6)) obj.endpoint.y = image.rows - 6;
+                if (obj.endpoint.x > int(image.cols - 6)) obj.endpoint.x = image.cols - 6;
 
+                float Staticness = 0, Objectness = 0;
 
-              // rectangle(image, Rect(obj.origin, obj.endpoint), Scalar(255, 255, 255));
+                dirsum = zeroMatrix32F;
+                segmap = zeroMatrix16U;
+                //let compiler optimize this hard (added const)
+                const auto y = obj.origin.y;
+                const auto x = obj.origin.x;
+                const auto w = obj.endpoint.y ;
+                const auto h = obj.endpoint.x ;
 
+                edge_segments(y, x, w, h, Staticness, Objectness);
 
+                if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000)
+                {
+                    results << " x: " << x << " y: " << y << " w: " << w << " h: " << h << std::endl;
+                    const static Scalar color(0, 0, 255);
+                    rectangle(image, Rect(obj.origin, obj.endpoint), color, 2);
+                    abandoned_objects.abandonnes[u].abandoness++;
 
-                float Staticness, Objectness;
+                    if (abandoned_objects.abandonnes[u].abandoness > 0)
+                    {
+                        stop = true;
+                        abandoned_objects.abandonnes[u].update = false;
+                        abandoned_objects.abandonnes[u].activeness = 200;
+                    }
 
-               
-
-                    uint y = obj.origin.y;
-                    uint x = obj.origin.x;
-                    if (obj.origin.y < 5 && obj.origin.x < 5) continue;
-
-                   
-                        uint w = obj.endpoint.y ;
-                        uint h = obj.endpoint.x ;
-
-						// FIXME: added missing clamping
-					//	if (w < 0) w = 0; if (w > image.cols) w = image.cols;
-						//if (h < 0) h = 0; if (h > image.rows) h = image.rows;
-						
-  //                      segmap1.copyTo(segmap);
-    //                  dirsum1.copyTo(dirsum);
-                            dirsum.create(image.rows, image.cols, CV_32F);
-                        segmap.create(image.rows, image.cols,CV_16U);
-						dirsum=Scalar::all(0);
-						segmap=Scalar::all(0);
-	                    Staticness = 0;
-                        Objectness = 0;
-
-                        edge_segments(y, x, w, h, Staticness, Objectness);
-
-                        if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000) {
-                            enter = true;
-                            results<<" x: "<< x<<" y: "<<y<<" w: "<<w<<" h: "<<h<<endl; 
-                           rectangle(image, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
-                            //rectangle(threshed1, Rect(obj.origin, obj.endpoint), Scalar(255, 255, 255), 2);
-
-                            //rectangle(map2, Rect(obj.origin, obj.endpoint), Scalar(0, 0, 255), 2);
-                            //putText(image, "Abandoned !", Point(obj.origin.x, obj.origin.y - 10), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2, 8, false);
-                            abandoned_objects.abandonnes[u].abandoness++;
-
-                            if (abandoned_objects.abandonnes[u].abandoness > 0) {
-                                stop = true;
-                                abandoned_objects.abandonnes[u].update = false;
-                                abandoned_objects.abandonnes[u].activeness = 200;
-                            }
-
-                        }
-                  
-                
-
+                }
             }
 
-          //  cvtColor(threshed1, threshed, CV_GRAY2BGR);
-           // cvtColor(F, fore, CV_GRAY2BGR);
-
-            bitwise_not(fore, fore);
-            //bitwise_not(threshed, threshed);
+            //ok,those 2 take around -5 fps on i7
             imshow("output", image);
-            //imshow("static edges", result);
-         //   imshow("moving edges", fore);
-            //imshow("finalmap", finalmap);
-
             waitKey(10);
 
         }
         t = ((double) getTickCount() - t) / getTickFrequency();
-
-        cout << "FPS  " << 1 / t << endl;
-        meanfps =  (1 / t)+meanfps;
-
-//		cout<<"FPS "<<1/t<<endl;
-        i++;
+        meanfps =  (1 / t) + meanfps;
+        if (i % 50 == 0 )
+            std::cout << "FPS  " << meanfps / (i + 1) << std::endl;
     }
-        cout << "mean FPS  " << meanfps/i << endl;
-        cout << "mean FPS region  " << meanfps_static/i << endl;
+    //std::cout << "mean FPS  " << meanfps / i << std::endl;
+    //std::cout << "mean FPS region  " << meanfps_static / i  << std::endl;
 
     return 0;
 }

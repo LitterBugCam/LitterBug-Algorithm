@@ -1,6 +1,6 @@
 CC := g++
 C11 := -std=c++11
-CFLAGS := -g -O3  
+CFLAGS := -g -O3 -march=native 
 
 SRCS := Litter_detect.cpp  edge_grouping.cpp scoring.cpp
 PROG := Litter_detect

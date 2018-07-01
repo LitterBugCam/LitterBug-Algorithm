@@ -1,0 +1,8 @@
+build-LitterBug-Arch-Debug/
+build-LitterBug-Arch-Profile/
+build-LitterBug-Arch-Release/
+**/*.o
+**/*.obj
+
+
+
