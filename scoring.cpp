@@ -118,7 +118,9 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                 meanOX[segmap.at<segmap_t>(c, r)] += cos(2 * dir1.at<float>(c, r));
                 meanOY[segmap.at<segmap_t>(c, r)] += sin(2 * dir1.at<float>(c, r));
                 meanNB[segmap.at<segmap_t>(c, r)]++;
-                segmag[segmap.at<segmap_t>(c, r)] += static_cast<segmap_t>(normm.at<float>(c, r)); //Sobel gives float!!!!
+                const auto n = normm.at<float>(c, r) / 255.; //should be done where cardToPolar calculated, but here is faster
+                //std::cout << " n = " << n << std::endl;
+                segmag[segmap.at<segmap_t>(c, r)] += static_cast<segmap_t>(n); //Sobel gives float!!!!
                 //~ cout<<"norm "<<(int)normm.at<uchar>(c,r)<<endl;
             }
         }
