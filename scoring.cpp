@@ -1,15 +1,16 @@
 
 #include "scoring.h"
 bool stop;
+std::vector<int> segmag;
+
 cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1, object_map;
 std::vector<std::vector<float>> afinity;
 std::vector<std::vector<int>> afinityidx;
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
 std::vector<float > segw;
-std::vector<int> meanX, meanY, meanNB, segmag;
-std::vector<float>   meanOX, meanOY, meanO;
 bool debug;
+
 
 
 void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
@@ -100,38 +101,40 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     segmag.assign(segcount, 0);
 
     overlap_seg.resize(0);
-    meanX.assign(segcount, 0);
-    meanY.assign(segcount, 0);
-    meanNB.assign(segcount, 0);
-    meanOX.assign(segcount, 0);
-    meanOY.assign(segcount, 0);
-    meanO.assign(segcount, 0);
+    std::vector<int>     meanX(segcount, 0), meanY(segcount, 0), meanNB(segcount, 0);
+    std::vector<float>   meanOX(segcount, 0), meanOY(segcount, 0);
 
-
-    for (fullbits_int_t r = rr; r < h; r++)
-        for (fullbits_int_t c = cc; c < w; c++)
+    for (fullbits_int_t r = rr; r < h; ++r)
+        for (fullbits_int_t c = cc; c < w; ++c)
         {
-            if (segmap.at<segmap_t>(c, r) > 0)
+            const auto& index = segmap.at<segmap_t>(c, r);
+            if (index >= 0) //fixme: not sure, this check disallows 0th element in arrays divides, shouldn't it be >=0
             {
-                meanX[segmap.at<segmap_t>(c, r)] += c;
-                meanY[segmap.at<segmap_t>(c, r)] += r;
-                meanOX[segmap.at<segmap_t>(c, r)] += cos(2 * dir1.at<float>(c, r));
-                meanOY[segmap.at<segmap_t>(c, r)] += sin(2 * dir1.at<float>(c, r));
-                meanNB[segmap.at<segmap_t>(c, r)]++;
+                meanX [index] += c;
+                meanY [index] += r;
+                meanOX[index] += cos(2 * dir1.at<float>(c, r));
+                meanOY[index] += sin(2 * dir1.at<float>(c, r));
+                meanNB[index] += 1;
+
                 const auto n = normm.at<float>(c, r) / 255.; //should be done where cardToPolar calculated, but here is faster
                 //std::cout << " n = " << n << std::endl;
-                segmag[segmap.at<segmap_t>(c, r)] += static_cast<segmap_t>(n); //Sobel gives float!!!!
+                segmag[index] += static_cast<segmap_t>(n); //Sobel gives float!!!!
                 //~ cout<<"norm "<<(int)normm.at<uchar>(c,r)<<endl;
             }
         }
 
 
-    for (size_t i = 1; i < segcount; i++)
+    //starting from +1 because 0th is 0 = division by zero
+    //this is ready to be parallized using openmp, and works faster then original loop with 1 core yet
+    divideArr(meanX,  meanNB);
+    divideArr(meanY,  meanNB);
+    divideArr(meanOY, meanNB);
+    divideArr(meanOX, meanNB);
+    ALG_NS::transform (meanOX.cbegin(), meanOX.cend(), meanOY.cbegin(), meanOX.begin(), [](float ox, float oy)
     {
-        meanX[i] /= meanNB[i];
-        meanY[i] /= meanNB[i];
-        meanO[i] = atan2(meanOY[i] / meanNB[i], meanOX[i] / meanNB[i]) / 2;
-    }
+        return std::atan2(oy, ox) / 2;
+    });
+    auto& meanO = meanOX;
 
     //compute segment convexity and degree of  parallelism with bounding box boundaries
 

@@ -47,6 +47,13 @@ typename std::enable_if<std::is_arithmetic<T>::value, int>::type getCvTypeFor1Ch
     return CV_32F;
 }
 
+//in C++11 lambdas can't be templates :( too bad
+template<class C, class T>
+void inline divideArr(std::vector<C>& arr, const std::vector<T>& by)
+{
+    ALG_NS::transform (arr.cbegin(), arr.cend(), by.cbegin(), arr.begin(), std::divides<C>());
+}
+
 extern bool stop;
 extern cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1, object_map;
 extern std::vector<std::vector<float>> afinity;
@@ -54,8 +61,7 @@ extern std::vector<std::vector<int>> afinityidx;
 extern std::vector< fullbits_int_t >  overlap_seg;
 extern std::vector< fullbits_int_t > seg_processed;
 extern std::vector<float > segw;
-extern std::vector<int> meanX, meanY, meanNB, segmag;
-extern std::vector<float>   meanOX, meanOY, meanO;
+extern std::vector<int> segmag;
 extern bool debug;
 void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);
 
