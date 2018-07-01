@@ -128,15 +128,12 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     //compute segment convexity and degree of  parallelism with bounding box boundaries
 
 
-    std::vector<std::vector<float>> afinity(segcount);
+
     std::vector<std::vector<int>>  afinityidx(segcount);
 
     //ensuring no allocations in deep loops below, 30 is multiply of all loops there
     for (size_t i = 0; i < segcount; ++i)
-    {
         afinityidx.at(i).reserve(30);
-        afinity.at(i).reserve(30);
-    }
 
     //compute inter-segments affinities
     for (fullbits_int_t r = rr + 2; r < h - 1; r++)
@@ -159,29 +156,16 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                     return v == s1;
                 }))
                     continue;
-
-                    const static float pi_2 = (PI) / 2.f;
-                    float o = std::atan2(meanY[s0] - meanY[s1], meanX[s0] - meanX[s1]) + pi_2;
-                    auto  a = std::abs<float>(std::cos(meanO[s0] - o) * std::cos(meanO[s1] - o));
-                    a *= a;
-                    afinity[s0].push_back(a);
                     afinityidx[s0].push_back(s1);
-                    afinity[s1].push_back(a);
                     afinityidx[s1].push_back(s0);
                 }
-
         }
-
-
-
     float affine = 1;
     for (size_t i = 0, sz = afinityidx.size(); i < sz; ++i)
     {
         if (segw[i] >= 0.5) continue;
         if (afinityidx[i].size() == 0) affine = affine * 0.1;
         else affine = affine * ((float) afinityidx[i].size() / 2);
-
-
     }
     /////////////////////////////////////////////////////:
     //~ cout<<"score "<<score<<endl;
