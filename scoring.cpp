@@ -2,7 +2,7 @@
 #include "scoring.h"
 #include <map>
 
-cv::Mat foreground1, dirsum, finalmap, bw, bw1;
+cv::Mat foreground1, dirsum, bw, bw1;
 
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
@@ -61,27 +61,16 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
                             }
                         }
                     }
-                if (neib == true)//&& omin!=1000)
+                if (neib)//&& omin!=1000)
                 {
                     segmap.at<segmap_t>(c, r) = segmap.at<segmap_t>(cs, rs);
                     dirsum.at<float>(cs, rs) += omin;
                     dirsum.at<float>(c, r) = dirsum.at<float>(cs, rs);
-                    finalmap.at<Vec3b>(c, r) = finalmap.at<Vec3b>(cs, rs);
                 }//no segment exist in neigbhor, new segment is created starting from this point
-
                 else
                     if (!isolated)
-                    {
-                        //~ cout<<"segments count "<<segcount<<endl;
-                        //~ segmap1.at<edgep>(c,r).dirsum= new float(0);
-                        segmap.at<segmap_t>(c, r) = segcount;
-                        //~ RNG rng(12345);
-                        //~ segmap1.at<edgep>(c,r).edgepoint= new Scalar(rand()&255, rand()&255, rand()&255);
-                        finalmap.at<Vec3b>(c, r)[0] = rand() & 255;
-                        finalmap.at<Vec3b>(c, r)[1] = rand() & 255;
-                        finalmap.at<Vec3b>(c, r)[2] = rand() & 255;
-                        segcount++;
-                    }
+                        segmap.at<segmap_t>(c, r) = segcount++;
+
             }
         }
 

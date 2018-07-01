@@ -267,8 +267,6 @@ int main(int argc, char * argv[])
             abandoned_objects.extractObject(result, image, i);
             cv::Canny(gray, bw, 30, 30 * 3, 3);
 
-            finalmap = ffMatrix8UC3;
-
             sortX(abandoned_objects.abandonnes);
 
             AO_Collection po;
