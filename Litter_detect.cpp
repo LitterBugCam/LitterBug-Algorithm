@@ -284,18 +284,14 @@ int main(int argc, char * argv[])
             //fixme: vectors change sizes inside loops...should it be so ? I guess it is logical error there which leads to degrading fps....
             for (size_t u = 0; u < abandoned_objects.abandonnes.size(); ++u)
             {
-                bool process = false;
-                auto& atu = abandoned_objects.abandonnes.at(u);
-                for (const auto & processed_object : abandoned_objects.processed_objects)
-                {
 
-                    if (abs(processed_object.origin.x - atu.origin.x) < 20 && abs(processed_object.origin.y - atu.origin.y) < 20
-                            && abs(processed_object.endpoint.x - atu.endpoint.x) < 20 && abs(processed_object.endpoint.y - atu.endpoint.y) < 20)
-                    {
-                        process = true;
-                        break;
-                    }
-                }
+                auto& atu = abandoned_objects.abandonnes.at(u);
+                auto& po  = abandoned_objects.processed_objects; //making shorter texts
+
+                const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const AO & obj)
+                {
+                    return obj == atu;
+                });
                 if (process) continue;
 
                 //damn, do they mean copies really here, or huge bug?
@@ -303,8 +299,8 @@ int main(int argc, char * argv[])
                 //abandoned_objects.processed_objects.push_back(obj);
 
                 //lets assume those copies were bug (yeh, +1fps at the very end of test movie)
-                abandoned_objects.processed_objects.push_back(atu);
-                AO& obj = abandoned_objects.processed_objects.back();
+                po.push_back(atu);
+                AO& obj = po.back();
 
                 if (abs(obj.origin.y - obj.endpoint.y) < 15 || abs(obj.origin.x - obj.endpoint.x) < minsize) continue;
 

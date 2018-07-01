@@ -49,6 +49,12 @@ struct AO
     {
         return (abs(centre.x - this->centre.x) < 20 && abs(centre.y - this->centre.y) < 20);
     }
+
+    bool operator==(const AO& atu) const
+    {
+        return std::abs(origin.x - atu.origin.x) < 20 && std::abs(origin.y - atu.origin.y) < 20
+               && std::abs(endpoint.x - atu.endpoint.x) < 20 && std::abs(endpoint.y - atu.endpoint.y) < 20;
+    }
 };
 
 using AO_Collection = std::vector<AO>;
