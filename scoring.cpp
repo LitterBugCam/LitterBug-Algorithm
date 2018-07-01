@@ -11,7 +11,6 @@ std::vector<int> meanX, meanY, meanNB, segmag;
 std::vector<float>   meanOX, meanOY, meanO;
 bool debug;
 
-using segmap_t = int16_t;
 
 void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
@@ -38,7 +37,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                         if (bw.at<uchar>(c1, r1) == 255)
                         {
                             isolated = false;
-                            if (segmap.at<segmap_t>(c1, r1) != 0)
+                            if (segmap.at<int>(c1, r1) != 0)
                             {
 
                                 // test angle between p(c,r) and p1(c1,r1)
@@ -63,7 +62,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                     }
                 if (neib == true)//&& omin!=1000)
                 {
-                    segmap.at<segmap_t>(c, r) = segmap.at<segmap_t>(cs, rs);
+                    segmap.at<int>(c, r) = segmap.at<int>(cs, rs);
                     dirsum.at<float>(cs, rs) += omin;
                     dirsum.at<float>(c, r) = dirsum.at<float>(cs, rs);
                     finalmap.at<Vec3b>(c, r) = finalmap.at<Vec3b>(cs, rs);
@@ -74,7 +73,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                     {
                         //~ cout<<"segments count "<<segcount<<endl;
                         //~ segmap1.at<edgep>(c,r).dirsum= new float(0);
-                        segmap.at<segmap_t>(c, r) = segcount;
+                        segmap.at<int>(c, r) = segcount;
                         //~ RNG rng(12345);
                         //~ segmap1.at<edgep>(c,r).edgepoint= new Scalar(rand()&255, rand()&255, rand()&255);
                         finalmap.at<Vec3b>(c, r)[0] = rand() & 255;
@@ -112,15 +111,14 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     for (fullbits_int_t r = rr; r < h; r++)
         for (fullbits_int_t c = cc; c < w; c++)
         {
-            if (segmap.at<segmap_t>(c, r) > 0)
+            if (segmap.at<int>(c, r) > 0)
             {
-                meanX[segmap.at<segmap_t>(c, r)] += c;
-                meanY[segmap.at<segmap_t>(c, r)] += r;
-                meanOX[segmap.at<segmap_t>(c, r)] += cos(2 * dir1.at<float>(c, r));
-                meanOY[segmap.at<segmap_t>(c, r)] += sin(2 * dir1.at<float>(c, r));
-                meanNB[segmap.at<segmap_t>(c, r)]++;
-                const auto n = normm.at<float>(c, r); //sobel returns float!!
-                segmag[segmap.at<segmap_t>(c, r)] += static_cast<segmap_t>(n);
+                meanX[segmap.at<int>(c, r)] += c;
+                meanY[segmap.at<int>(c, r)] += r;
+                meanOX[segmap.at<int>(c, r)] += cos(2 * dir1.at<float>(c, r));
+                meanOY[segmap.at<int>(c, r)] += sin(2 * dir1.at<float>(c, r));
+                meanNB[segmap.at<int>(c, r)]++;
+                segmag[segmap.at<int>(c, r)] += ((int) normm.at<uchar>(c, r) / 255);
                 //~ cout<<"norm "<<(int)normm.at<uchar>(c,r)<<endl;
             }
         }
@@ -143,14 +141,14 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         for (fullbits_int_t c = cc + 2; c < w - 1; c++)
         {
 
-            fullbits_int_t s0 = segmap.at<segmap_t>(c, r);
+            fullbits_int_t s0 = segmap.at<int>(c, r);
             if (s0 <= 0)
                 continue;
 
             for (fullbits_int_t rd = -2; rd <= 2; rd++)
                 for (fullbits_int_t cd = -2; cd <= 2; cd++)
                 {
-                    fullbits_int_t s1 = segmap.at<segmap_t>(c + cd, r + rd);
+                    fullbits_int_t s1 = segmap.at<int>(c + cd, r + rd);
                     if (s1 <= s0)
                         continue;
 

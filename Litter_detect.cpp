@@ -116,9 +116,8 @@ int main(int argc, char * argv[])
 
     const auto zeroMatrix8U  = cv::Mat::zeros(image.size(), CV_8UC1);
     const auto zeroMatrix16U = cv::Mat::zeros(image.size(), CV_16U);
-    const auto zeroMatrix16S = cv::Mat::zeros(image.size(), CV_16S);
     const auto zeroMatrix32F = cv::Mat::zeros(image.size(), CV_32F);
-    const auto ffMatrix8UC3  = cv::Mat::ones(image.size(),  CV_8UC3) * 255;
+    const auto ffMatrix8UC3  = cv::Mat::ones(image.size(), CV_8UC1) * 255;
 
 
     cv::Mat abandoned_map = zeroMatrix8U;
@@ -308,7 +307,7 @@ int main(int argc, char * argv[])
                 float Staticness = 0, Objectness = 0;
 
                 dirsum = zeroMatrix32F;
-                segmap = zeroMatrix16S;
+                segmap = zeroMatrix16U;
                 //let compiler optimize this hard (added const)
                 const auto y = atu.origin.y;
                 const auto x = atu.origin.x;
