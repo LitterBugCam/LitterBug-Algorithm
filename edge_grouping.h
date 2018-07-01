@@ -107,7 +107,6 @@ public:
     cv::Point endpoint{};
 
     fullbits_int_t positiongroup{0};
-    bool skip{false};
 
     object() = delete;
     object(const cv::Point& centre, const cv::Rect& boxe, fullbits_int_t video_frame_index):
@@ -146,10 +145,15 @@ public:
         return active();
     }
 
-    bool deactivate()
+    bool deactivate() //returns true if object NOT active
     {
         --activeness;
-        return active();
+        return !active();
+    }
+
+    bool skip() const
+    {
+        return lifetime > 20 && positiongroup == 0;
     }
 };
 

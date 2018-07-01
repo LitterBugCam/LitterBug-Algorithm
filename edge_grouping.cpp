@@ -77,7 +77,6 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
         }
     }
 
-
     for (const auto & boxe : boxes)
     {
         bool found = false;
@@ -85,7 +84,6 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
 
         for (auto & j : candidat)
         {
-            j.skip = false;
             j.positiongroup = 0;
             if (j == box_center)
             {
@@ -102,7 +100,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     compteur = 1;
     for (size_t j = 0, sz = candidat.size(); j < sz; ++j)
     {
-        if (candidat[j].skip)
+        if (candidat[j].skip())
             continue;
         grouping(j);
         //if (candidat[j].lifetime < 150);
@@ -114,13 +112,11 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     {
         it.lifetime++;
 
-        if (!it.deactivate())
+        if (it.deactivate())
             continue;
 
-        if (it.lifetime > 20 && it.positiongroup == 0)
+        if (it.skip())
         {
-            //  cout << " efefefefef" << endl;
-            it.skip = true;
             const cv::Rect tmp{it.origin.x, it.origin.y, it.endpoint.x - it.origin.x, it.endpoint.y - it.origin.y};
             abandonnes.emplace_back(tmp, it.centre);
         }
