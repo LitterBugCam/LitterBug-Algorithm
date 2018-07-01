@@ -1,8 +1,6 @@
 #include "edge_grouping.h"
 #include <limits>
 
-cv::Mat  threshed;
-
 cv::Point::value_type objects::minDistance(const cv::Point& p1, const cv::Point& p2, const cv::Point& q1, const cv::Point& q2)
 {
     using vt = cv::Point::value_type;
@@ -75,8 +73,8 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
         for (fullbits_int_t idx = 0; idx >= 0; idx = hierarchy.at(idx)[0])
         {
             const auto& c = contours.at(idx);
-            if (arcLength(c, false) > 20)
-                boxes.push_back(boundingRect(c));
+            if (cv::arcLength(c, false) > 20)
+                boxes.push_back(cv::boundingRect(c));
         }
     }
 

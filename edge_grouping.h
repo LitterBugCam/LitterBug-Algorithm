@@ -16,7 +16,6 @@
 
 #include "Litterheaders.h"
 #include <algorithm>
-extern cv::Mat map2_temp, threshed;
 
 struct AO
 {
