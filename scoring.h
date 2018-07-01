@@ -36,7 +36,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
 
 //well, instead using arrays and wasting a lot of memory, lets use map, however, it has limitations to 32-bit index
 template<class T>
-class ZeroedArray
+class ZeroedMapArray
 {
 private:
     struct nohash
@@ -75,6 +75,25 @@ public:
     }
 };
 
+//this will keep for experiments, so can just change between ZeroedMapArray / ZeroedArray in declaration only
+template <class T>
+class ZeroedArray
+{
+private:
+    cv::Mat storage;
+public:
+    ZeroedArray(int Size):
+        storage(Size, Size, cv::DataType<T>::type, cv::Scalar(0)) {}
+    T at(uint32_t y, uint32_t x) const
+    {
+        return storage.at<T>(y, x);
+    }
+
+    T& at(uint32_t y, uint32_t x)
+    {
+        return storage.at<T>(y, x);
+    }
+};
 
 #endif /* SCORING_H */
 

@@ -12,8 +12,11 @@ using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all 
 
 void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
-    ZeroedArray<short> segmap;
-    ZeroedArray<float> dirsum;
+    //ZeroedMapArray<short> segmap;
+    //ZeroedMapArray<float> dirsum;
+
+    ZeroedArray<short> segmap(std::max(w, h) + 1);
+    ZeroedArray<float> dirsum(std::max(w, h) + 1);
 
     using namespace cv;
     size_t segcount = 1;
