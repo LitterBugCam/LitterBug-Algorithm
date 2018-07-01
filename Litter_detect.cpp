@@ -281,6 +281,7 @@ int main(int argc, char * argv[])
             abandoned_objects.processed_objects.clear();
             stop = false;
 
+            sortX(abandoned_objects.abandonnes);
             //fixme: vectors change sizes inside loops...should it be so ? I guess it is logical error there which leads to degrading fps....
             for (size_t u = 0; u < abandoned_objects.abandonnes.size(); ++u)
             {
@@ -301,6 +302,8 @@ int main(int argc, char * argv[])
                 //lets assume those copies were bug (yeh, +1fps at the very end of test movie)
                 po.push_back(atu);
                 AO& obj = po.back();
+
+                sortX(po);
 
                 if (abs(obj.origin.y - obj.endpoint.y) < 15 || abs(obj.origin.x - obj.endpoint.x) < minsize) continue;
 

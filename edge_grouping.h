@@ -57,7 +57,18 @@ struct AO
     }
 };
 
+
 using AO_Collection = std::vector<AO>;
+
+
+template <class T>
+void sortX(std::vector<T>& src)
+{
+    std::sort(src.begin(), src.end(), [](T & a, T & b)
+    {
+        return a.origin.x < b.origin.x;
+    });
+}
 
 template <class T>
 void cleanup(std::vector<T>& src)
