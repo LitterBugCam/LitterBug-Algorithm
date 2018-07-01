@@ -54,6 +54,11 @@ struct AO
         return std::abs(origin.x - atu.origin.x) < 20 && std::abs(origin.y - atu.origin.y) < 20
                && std::abs(endpoint.x - atu.endpoint.x) < 20 && std::abs(endpoint.y - atu.endpoint.y) < 20;
     }
+
+    bool active() const
+    {
+        return activeness > 0;
+    }
 };
 
 
@@ -74,7 +79,7 @@ void cleanup(std::vector<T>& src)
 {
     src.erase(std::remove_if(src.begin(), src.end(), [](T & val)->bool
     {
-        return val.activeness < 1;
+        return !val.active();
     }), src.end());
 }
 
@@ -90,16 +95,62 @@ void next(std::vector<T>& src)
 
 struct object
 {
-    bool proc{false};
+private:
+    fullbits_int_t activeness{40};
+    fullbits_int_t video_frame_index; //video frame index I think
+
+public:
     fullbits_int_t lifetime{0};
-    fullbits_int_t apparition{0};
+
     cv::Point origin{};
     cv::Point centre{};
     cv::Point endpoint{};
-    fullbits_int_t activeness{40};
-    bool active{true};
+
     fullbits_int_t positiongroup{0};
     bool skip{false};
+
+    object() = delete;
+    object(const cv::Point& centre, const cv::Rect& boxe, fullbits_int_t video_frame_index):
+        video_frame_index(video_frame_index)
+    {
+        update(centre, boxe);
+    }
+
+    bool operator == (const cv::Point& box_center) const
+    {
+        return std::abs(box_center.x - centre.x) < 5 && std::abs(box_center.y - centre.y) < 5;
+    }
+
+    bool isCloseFrame(const object& o) const
+    {
+        return std::abs(video_frame_index - o.video_frame_index) < 50;
+    }
+
+    void update(const cv::Point& centre, const cv::Rect& boxe)
+    {
+        this->centre = centre;
+        origin.x = boxe.x;
+        origin.y = boxe.y;
+        endpoint.x = boxe.x + boxe.width;
+        endpoint.y = boxe.y + boxe.height;
+    }
+
+    bool active() const
+    {
+        return activeness > 0;
+    }
+
+    bool activate()
+    {
+        ++activeness;
+        return active();
+    }
+
+    bool deactivate()
+    {
+        --activeness;
+        return active();
+    }
 };
 
 class objects

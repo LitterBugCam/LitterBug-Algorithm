@@ -39,7 +39,7 @@ void objects::grouping(size_t j)
         {
             if (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5)
             {
-                if (std::abs(cj.apparition - ce.apparition) < 50)
+                if (cj.isCloseFrame(ce))
                 {
                     if (cj.positiongroup == 0)
                     {
@@ -62,7 +62,6 @@ void objects::grouping(size_t j)
 
 void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
 {
-    // cvtColor(map2, map2_temp, CV_GRAY2RGB);
     std::vector<cv::Rect> boxes;
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
@@ -82,49 +81,22 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     for (const auto & boxe : boxes)
     {
         bool found = false;
-        const cv::Point2f sample{boxe.x + boxe.width / 2.f, boxe.y + boxe.height / 2.f};
+        const cv::Point2f box_center{boxe.x + boxe.width / 2.f, boxe.y + boxe.height / 2.f};
 
         for (auto & j : candidat)
         {
             j.skip = false;
             j.positiongroup = 0;
-            //~ if(blob->minx-candidat[j].origin.x<5 && blob->miny-candidat[j].origin.y<5 && blob->maxx-candidat[j].endpoint.x<5 && blob->maxy-candidat[j].endpoint.y<5 )
-            if (std::abs(sample.x - j.centre.x) < 5 && std::abs(sample.y - j.centre.y) < 5)
+            if (j == box_center)
             {
-
-                j.centre.x = sample.x;
-                j.centre.y = sample.y;
-                j.origin.x = boxe.x;
-                j.origin.y = boxe.y;
-                j.endpoint.x = boxe.x + boxe.width;
-                j.endpoint.y = boxe.y + boxe.height;
-
-                j.activeness = 40;
-                j.active = true;
+                j.update(box_center, boxe);
+                j.activate();
                 found = true;
                 break;
             }
-
-            //  rectangle(map2_temp, Rect(candidat[j].origin, candidat[j].endpoint), Scalar(0, 255, 255), 1);
-            //   rectangle(threshed, Rect(candidat[j].origin, candidat[j].endpoint), Scalar(0, 255, 255), 1);
-
         }
         if (!found)
-        {
-            object obj;
-            obj.positiongroup = 0;
-            obj.centre.x = sample.x;
-            obj.centre.y = sample.y;
-            obj.origin.x = boxe.x;
-            obj.origin.y = boxe.y;
-            obj.endpoint.x = boxe.x + boxe.width;
-            obj.endpoint.y = boxe.y + boxe.height;
-            obj.lifetime = 0;
-            obj.activeness = 40;
-            obj.active = true;
-            obj.apparition = newindex;
-            candidat.push_back(obj);
-        }
+            candidat.emplace_back(box_center, boxe, newindex);
     }
 
     compteur = 1;
@@ -141,9 +113,10 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     for (auto&  it : candidat)
     {
         it.lifetime++;
-        it.proc = false;
-        if (--it.activeness < 1)
+
+        if (!it.deactivate())
             continue;
+
         if (it.lifetime > 20 && it.positiongroup == 0)
         {
             //  cout << " efefefefef" << endl;
@@ -158,12 +131,11 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     {
         fullbits_int_t label = candidat.at(j).positiongroup;
         cv::Rect obje;
-        if (candidat.at(j).positiongroup != 0 && !candidat.at(j).proc)
+        if (candidat.at(j).positiongroup != 0)
             for (size_t e = 0, r = 0; e < sz; ++e, ++r)
             {
                 if (e != j && label == candidat.at(e).positiongroup)//&& candidat[e].positiongroup!=0 )
                 {
-                    candidat.at(e).proc = true;
                     if (r == 0)
                         obje = cv::Rect(candidat.at(j).origin, candidat.at(j).endpoint) | cv::Rect(candidat.at(e).origin, candidat.at(e).endpoint);
                     else
