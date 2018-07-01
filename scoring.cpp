@@ -134,7 +134,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     {
         return std::atan2(oy, ox) / 2;
     });
-    auto& meanO = meanOX;
+    const auto& meanO = meanOX;
 
     //compute segment convexity and degree of  parallelism with bounding box boundaries
 
