@@ -89,7 +89,6 @@ void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t 
 
 
     //prepare data for computing affinities
-    std::vector<float > segw(segcount, 0);
     std::vector<int>    segmag(segcount, 0);
 
     overlap_seg.resize(0);
@@ -155,19 +154,10 @@ void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t 
                     afinityidx[s1][s0] = true;
                 }
         }
-    score = 1;
-    auto counter = segcount - afinityidx.size();
+    score = pow(0.1, segcount - afinityidx.size());
     for (const auto& ap : afinityidx)
-    {
-        if (segw[ap.first] >= 0.5)
-        {
-            --counter;
-            continue;
-        }
         score *= ap.second.size() / 2.f;
-    }
-    if (counter > 0)
-        score *= pow(0.1, counter);
+
     /////////////////////////////////////////////////////:
     //~ cout<<"score "<<score<<endl;
 
@@ -189,8 +179,6 @@ void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t 
 
     for (size_t i = 0; i < segcount; ++i)
     {
-        if (segw[i] >= 1) continue;
-
         const auto angle = std::abs<float>(sin(meanO[i]));
 
         if (std::abs<float>(angle - 1) < 0.5)
