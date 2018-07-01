@@ -29,7 +29,6 @@ void inline divideArr(std::vector<C>& arr, const std::vector<T>& by)
 }
 
 extern cv::Mat foreground1, bw, bw1;
-extern std::vector< fullbits_int_t >  overlap_seg;
 extern std::vector< fullbits_int_t > seg_processed;
 extern bool debug;
 void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);

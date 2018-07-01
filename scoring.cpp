@@ -4,7 +4,6 @@
 
 cv::Mat foreground1, bw, bw1;
 
-std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
 bool debug;
 
@@ -95,8 +94,6 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
 
     //prepare data for computing affinities
 
-
-    overlap_seg.clear();
     std::vector<int>     meanX(segcount, 0), meanY(segcount, 0), meanNB(segcount, 0);
     std::vector<float>   meanOX(segcount, 0), meanOY(segcount, 0);
 
