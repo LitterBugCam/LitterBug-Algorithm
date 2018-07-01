@@ -285,11 +285,12 @@ int main(int argc, char * argv[])
             for (size_t u = 0; u < abandoned_objects.abandonnes.size(); ++u)
             {
                 bool process = false;
-                for (size_t e = 0; e < abandoned_objects.processed_objects.size(); ++e)
+                auto& atu = abandoned_objects.abandonnes.at(u);
+                for (auto & processed_object : abandoned_objects.processed_objects)
                 {
 
-                    if (abs(abandoned_objects.processed_objects[e].origin.x - abandoned_objects.abandonnes[u].origin.x) < 20 && abs(abandoned_objects.processed_objects[e].origin.y - abandoned_objects.abandonnes[u].origin.y) < 20
-                            && abs(abandoned_objects.processed_objects[e].endpoint.x - abandoned_objects.abandonnes[u].endpoint.x) < 20 && abs(abandoned_objects.processed_objects[e].endpoint.y - abandoned_objects.abandonnes[u].endpoint.y) < 20)
+                    if (abs(processed_object.origin.x - atu.origin.x) < 20 && abs(processed_object.origin.y - atu.origin.y) < 20
+                            && abs(processed_object.endpoint.x - atu.endpoint.x) < 20 && abs(processed_object.endpoint.y - atu.endpoint.y) < 20)
                     {
                         process = true;
                         break;
@@ -298,11 +299,11 @@ int main(int argc, char * argv[])
                 if (process) continue;
 
                 //damn, do they mean copies really here, or huge bug?
-                //AO obj = abandoned_objects.abandonnes.at(u);
+                //AO obj = atu;
                 //abandoned_objects.processed_objects.push_back(obj);
 
                 //lets assume those copies were bug (yeh, +1fps at the very end of test movie)
-                abandoned_objects.processed_objects.push_back(abandoned_objects.abandonnes.at(u));
+                abandoned_objects.processed_objects.push_back(atu);
                 AO& obj = abandoned_objects.processed_objects.back();
 
                 if (abs(obj.origin.y - obj.endpoint.y) < 15 || abs(obj.origin.x - obj.endpoint.x) < minsize) continue;
@@ -329,13 +330,13 @@ int main(int argc, char * argv[])
                     results << " x: " << x << " y: " << y << " w: " << w << " h: " << h << std::endl;
                     const static Scalar color(0, 0, 255);
                     rectangle(image, Rect(obj.origin, obj.endpoint), color, 2);
-                    abandoned_objects.abandonnes[u].abandoness++;
+                    atu.abandoness++;
 
-                    if (abandoned_objects.abandonnes[u].abandoness > 0)
+                    if (atu.abandoness > 0)
                     {
                         stop = true;
-                        abandoned_objects.abandonnes[u].update = false;
-                        abandoned_objects.abandonnes[u].activeness = 200;
+                        atu.update = false;
+                        atu.activeness = 200;
                     }
 
                 }
