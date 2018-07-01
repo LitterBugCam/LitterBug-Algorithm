@@ -299,20 +299,13 @@ int main(int argc, char * argv[])
                 atu.endpoint.y = std::min(atu.endpoint.y, image.rows - 6);
                 atu.endpoint.x = std::min(atu.endpoint.x, image.cols - 6);
 
-                float Staticness = 0, Objectness = 0;
-
-                //let compiler optimize this hard (added const)
-                const auto y = atu.origin.y;
-                const auto x = atu.origin.x;
                 //dont you think it is suspicous - reverted w/h (and seems reverted again in edge_segment)
-                const auto w = atu.endpoint.y ;
-                const auto h = atu.endpoint.x ;
+                es_param_t params(atu.origin.y, atu.origin.x, atu.endpoint.y, atu.endpoint.x);
+                edge_segments(object_map, angles, canny, params);
 
-                edge_segments(object_map, angles, canny, y, x, w, h, Staticness, Objectness);
-
-                if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000)
+                if (params.score > staticness_th && params.circularity > objectness_th && params.circularity < 1000000)
                 {
-                    results << " x: " << x << " y: " << y << " w: " << w << " h: " << h << std::endl;
+                    results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
                     const static Scalar color(0, 0, 255);
                     rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
                     atu.abandoness++;

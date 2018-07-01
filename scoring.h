@@ -108,8 +108,20 @@ public:
     }
 };
 
+//just packing values to single struct, to minimize amount passed (same order as original source)
+struct es_param_t
+{
+    fullbits_int_t cc;
+    fullbits_int_t rr;
+    fullbits_int_t w;
+    fullbits_int_t h;
+    float score;
+    float circularity;
+    es_param_t(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h):
+        cc(cc), rr(rr), w(w), h(h), score(0), circularity(0) {}
+};
 
-void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<float> &dir1, const ZeroedArray<uint8_t>& canny, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);
+void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<float> &dir1, const ZeroedArray<uint8_t>& canny, es_param_t& params);
 
 #endif /* SCORING_H */
 

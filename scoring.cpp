@@ -5,8 +5,15 @@
 using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all opencb will be 8 bits as well >:
 
 
-void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<float> &dir1, const ZeroedArray<uint8_t> &canny, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
+void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<float> &dir1, const ZeroedArray<uint8_t> &canny, es_param_t& param)
 {
+    const fullbits_int_t& cc = param.cc;
+    const fullbits_int_t& rr = param.rr;
+    const fullbits_int_t& w  = param.w;
+    const fullbits_int_t& h  = param.h;
+    float &score = param.score;
+    float &circularity = param.circularity;
+
     //this started with FPS  14.5386 and ended up with FPS  8.29852
     //    ZeroedMapArray<short> segmap;
     //    ZeroedMapArray<float> dirsum;
