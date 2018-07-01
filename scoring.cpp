@@ -12,9 +12,8 @@ using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all 
 
 void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
-    const auto mhw = std::max(h, w) + 1; //not sure, i'm lost when to use h or w ...so just let it be square so all indexes are valid (+1 must be for both dimensions)
-    cv::Mat segmap(mhw, mhw, cv::DataType<segmap_t>::type, cv::Scalar(0));
-    cv::Mat dirsum(mhw, mhw, cv::DataType<float>::type, cv::Scalar(0));
+    ZeroedArray<short> segmap;
+    ZeroedArray<float> dirsum;
 
     using namespace cv;
     size_t segcount = 1;
@@ -39,7 +38,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
                         if (bw.at<uchar>(c1, r1) == 255)
                         {
                             isolated = false;
-                            if (segmap.at<segmap_t>(c1, r1) != 0)
+                            if (segmap.at(c1, r1) != 0)
                             {
 
                                 // test angle between p(c,r) and p1(c1,r1)
@@ -49,7 +48,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
                                 if (v > 0.5) v = std::abs<float>(1 - v);
 
                                 //test the min angle with neibghor
-                                if (v < omin && dirsum.at<float>(c1, r1) < 0.5)
+                                if (v < omin && dirsum.at(c1, r1) < 0.5)
                                 {
 
                                     cs = c1;
@@ -64,13 +63,13 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
                     }
                 if (neib)//&& omin!=1000)
                 {
-                    segmap.at<segmap_t>(c, r) = segmap.at<segmap_t>(cs, rs);
-                    dirsum.at<float>(cs, rs) += omin;
-                    dirsum.at<float>(c, r) = dirsum.at<float>(cs, rs);
+                    segmap.at(c, r) = segmap.at(cs, rs);
+                    dirsum.at(cs, rs) += omin;
+                    dirsum.at(c, r) = dirsum.at(cs, rs);
                 }//no segment exist in neigbhor, new segment is created starting from this point
                 else
                     if (!isolated)
-                        segmap.at<segmap_t>(c, r) = segcount++;
+                        segmap.at(c, r) = segcount++;
 
             }
         }
@@ -86,7 +85,7 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
     for (fullbits_int_t r = rr; r < h; ++r)
         for (fullbits_int_t c = cc; c < w; ++c)
         {
-            const auto& index = segmap.at<segmap_t>(c, r);
+            const auto& index = segmap.at(c, r);
             if (index >= 0) //fixme: not sure, this check disallows 0th element in arrays divides, shouldn't it be >=0
             {
                 meanX [index] += c;
@@ -120,14 +119,14 @@ void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_
         for (fullbits_int_t c = cc + 2; c < w - 1; ++c)
         {
 
-            const fullbits_int_t s0 = segmap.at<segmap_t>(c, r);
+            const fullbits_int_t s0 = segmap.at(c, r);
             if (s0 <= 0)
                 continue;
 
             for (fullbits_int_t rd = -2; rd <= 2; ++rd)
                 for (fullbits_int_t cd = -2; cd <= 2; ++cd)
                 {
-                    const fullbits_int_t s1 = segmap.at<segmap_t>(c + cd, r + rd);
+                    const fullbits_int_t s1 = segmap.at(c + cd, r + rd);
                     if (s1 <= s0)
                         continue;
                     if (afinityidx.count(s0) && afinityidx.at(s0).count(s1))
