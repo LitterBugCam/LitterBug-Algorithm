@@ -278,49 +278,41 @@ int main(int argc, char * argv[])
             dir1 = dir * pi_180;
             finalmap = ffMatrix8UC3;
 
-            abandoned_objects.processed_objects.clear();
+
             stop = false;
 
             sortX(abandoned_objects.abandonnes);
-            //fixme: vectors change sizes inside loops...should it be so ? I guess it is logical error there which leads to degrading fps....
-            for (size_t u = 0; u < abandoned_objects.abandonnes.size(); ++u)
+
+            AO_Collection po;
+            po.reserve(abandoned_objects.abandonnes.size());
+            for (auto& atu : abandoned_objects.abandonnes)
             {
-
-                auto& atu = abandoned_objects.abandonnes.at(u);
-                auto& po  = abandoned_objects.processed_objects; //making shorter texts
-
                 const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const AO & obj)
                 {
                     return obj == atu;
                 });
                 if (process) continue;
 
-                //damn, do they mean copies really here, or huge bug?
-                //AO obj = atu;
-                //abandoned_objects.processed_objects.push_back(obj);
-
-                //lets assume those copies were bug (yeh, +1fps at the very end of test movie)
                 po.push_back(atu);
-                AO& obj = po.back();
-
                 sortX(po);
 
-                if (abs(obj.origin.y - obj.endpoint.y) < 15 || abs(obj.origin.x - obj.endpoint.x) < minsize) continue;
+                if (abs(atu.origin.y - atu.endpoint.y) < 15 || abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
 
-                if (obj.origin.y < 6) obj.origin.y = 6;
-                if (obj.origin.x < 6) obj.origin.x = 6;
-                if (obj.endpoint.y > int(image.rows - 6)) obj.endpoint.y = image.rows - 6;
-                if (obj.endpoint.x > int(image.cols - 6)) obj.endpoint.x = image.cols - 6;
+                if (atu.origin.y < 6) atu.origin.y = 6; //fixme: now we "move" original object, in original code it was done for copy
+                if (atu.origin.x < 6) atu.origin.x = 6;
+
+                if (atu.endpoint.y > int(image.rows - 6)) atu.endpoint.y = image.rows - 6;
+                if (atu.endpoint.x > int(image.cols - 6)) atu.endpoint.x = image.cols - 6;
 
                 float Staticness = 0, Objectness = 0;
 
                 dirsum = zeroMatrix32F;
                 segmap = zeroMatrix16U;
                 //let compiler optimize this hard (added const)
-                const auto y = obj.origin.y;
-                const auto x = obj.origin.x;
-                const auto w = obj.endpoint.y ;
-                const auto h = obj.endpoint.x ;
+                const auto y = atu.origin.y;
+                const auto x = atu.origin.x;
+                const auto w = atu.endpoint.y ;
+                const auto h = atu.endpoint.x ;
 
                 edge_segments(y, x, w, h, Staticness, Objectness);
 
@@ -328,7 +320,7 @@ int main(int argc, char * argv[])
                 {
                     results << " x: " << x << " y: " << y << " w: " << w << " h: " << h << std::endl;
                     const static Scalar color(0, 0, 255);
-                    rectangle(image, Rect(obj.origin, obj.endpoint), color, 2);
+                    rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
                     atu.abandoness++;
 
                     if (atu.abandoness > 0)
@@ -339,11 +331,9 @@ int main(int argc, char * argv[])
                     }
                 }
             }
-
             //ok,those 2 take around -5 fps on i7
             imshow("output", image);
             waitKey(10);
-
         }
         t = ((double) getTickCount() - t) / getTickFrequency();
         meanfps =  (1 / t) + meanfps;

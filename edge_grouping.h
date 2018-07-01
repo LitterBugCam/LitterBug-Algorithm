@@ -106,7 +106,7 @@ struct object
 class objects
 {
 public:
-    AO_Collection abandonnes{}, processed_objects{};
+    AO_Collection abandonnes{};
     fullbits_int_t compteur{0};
     std::vector<object> candidat{};
 

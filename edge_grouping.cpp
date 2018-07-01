@@ -205,7 +205,6 @@ void objects::extractObject(const cv::Mat &image, const cv::Mat &frame, fullbits
 void objects::reserve(long framesCount)
 {
     abandonnes.reserve(framesCount);
-    processed_objects.reserve(framesCount);
     candidat.reserve(framesCount);
 }
 
