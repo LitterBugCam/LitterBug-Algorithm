@@ -4,7 +4,7 @@
 
 bool stop;
 
-cv::Mat normm, dir1, foreground1, dirsum, finalmap, bw, bw1;
+cv::Mat dir1, foreground1, dirsum, finalmap, bw, bw1;
 
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
@@ -89,9 +89,9 @@ void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t 
 
 
     //prepare data for computing affinities
-    std::vector<int>    segmag(segcount, 0);
 
-    overlap_seg.resize(0);
+
+    overlap_seg.clear();
     std::vector<int>     meanX(segcount, 0), meanY(segcount, 0), meanNB(segcount, 0);
     std::vector<float>   meanOX(segcount, 0), meanOY(segcount, 0);
 
@@ -106,11 +106,6 @@ void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t 
                 meanOX[index] += cos(2 * dir1.at<float>(c, r));
                 meanOY[index] += sin(2 * dir1.at<float>(c, r));
                 meanNB[index] += 1;
-
-                const auto n = normm.at<float>(c, r) / 255.; //should be done where cardToPolar calculated, but here is faster
-                //std::cout << " n = " << n << std::endl;
-                segmag[index] += static_cast<segmap_t>(n); //Sobel gives float!!!!
-                //~ cout<<"norm "<<(int)normm.at<uchar>(c,r)<<endl;
             }
         }
 

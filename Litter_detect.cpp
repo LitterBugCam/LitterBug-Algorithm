@@ -155,8 +155,8 @@ int main(int argc, char * argv[])
 
 
 
-        cv::Mat dir;
-        cv::cartToPolar(grad_x, grad_y, normm, dir, true);
+        cv::Mat dir, not_used;
+        cv::cartToPolar(grad_x, grad_y, not_used, dir, true);
 
         if (i == 0)
         {

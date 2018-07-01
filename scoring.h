@@ -26,7 +26,7 @@ void inline divideArr(std::vector<C>& arr, const std::vector<T>& by)
 }
 
 extern bool stop;
-extern cv::Mat normm, dir1, foreground1, dirsum, finalmap, bw, bw1;
+extern cv::Mat dir1, foreground1, dirsum, finalmap, bw, bw1;
 extern std::vector< fullbits_int_t >  overlap_seg;
 extern std::vector< fullbits_int_t > seg_processed;
 extern bool debug;
