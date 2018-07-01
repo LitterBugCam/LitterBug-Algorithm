@@ -296,13 +296,13 @@ int main(int argc, char * argv[])
                 po.push_back(atu);
                 sortX(po);
 
-                if (abs(atu.origin.y - atu.endpoint.y) < 15 || abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
+                if (std::abs(atu.origin.y - atu.endpoint.y) < 15 || std::abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
 
-                if (atu.origin.y < 6) atu.origin.y = 6; //fixme: now we "move" original object, in original code it was done for copy
-                if (atu.origin.x < 6) atu.origin.x = 6;
+                atu.origin.y = std::max(atu.origin.y, 6);
+                atu.origin.x = std::max(atu.origin.x, 6);
 
-                if (atu.endpoint.y > int(image.rows - 6)) atu.endpoint.y = image.rows - 6;
-                if (atu.endpoint.x > int(image.cols - 6)) atu.endpoint.x = image.cols - 6;
+                atu.endpoint.y = std::min(atu.endpoint.y, image.rows - 6);
+                atu.endpoint.x = std::min(atu.endpoint.x, image.cols - 6);
 
                 float Staticness = 0, Objectness = 0;
 
