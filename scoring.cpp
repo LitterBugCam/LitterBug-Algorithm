@@ -4,7 +4,7 @@
 
 bool stop;
 
-cv::Mat dir1, foreground1, dirsum, finalmap, bw, bw1;
+cv::Mat foreground1, dirsum, finalmap, bw, bw1;
 
 std::vector< fullbits_int_t >  overlap_seg;
 std::vector< fullbits_int_t > seg_processed;
@@ -12,7 +12,7 @@ bool debug;
 
 using segmap_t = short; //well, that is bad, on MC that can be 8 bits...and all opencb will be 8 bits as well >:
 
-void edge_segments(const cv::Mat &object_map, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
+void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity)
 {
     const auto mhw = std::max(h, w); //not sure, i'm lost when to use h or w ...so just let it be square so all indexes are valid
     cv::Mat segmap = cv::Mat(mhw + 1, mhw + 1, cv::DataType<segmap_t>::type, cv::Scalar(0)); //(and +1 because of loops below)

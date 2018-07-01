@@ -154,10 +154,6 @@ int main(int argc, char * argv[])
         cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
 
-
-        cv::Mat dir, not_used;
-        cv::cartToPolar(grad_x, grad_y, not_used, dir, true);
-
         if (i == 0)
         {
             // X direction
@@ -271,8 +267,6 @@ int main(int argc, char * argv[])
             abandoned_objects.extractObject(result, image, i);
             cv::Canny(gray, bw, 30, 30 * 3, 3);
 
-            constexpr auto pi_180 = (PI) / 180.;
-            dir1 = dir * pi_180;
             finalmap = ffMatrix8UC3;
 
 
@@ -286,6 +280,11 @@ int main(int argc, char * argv[])
             cv::Mat object_map         = zeroMatrix8U;
             threshold(abandoned_map, object_map, aotime2, 255, THRESH_BINARY);
 
+            cv::Mat angles;
+            {
+                cv::Mat not_used; //by doing {} showing compiler we dont need that, so it will take care
+                cv::cartToPolar(grad_x, grad_y, not_used, angles, false);
+            }
             for (auto& atu : abandoned_objects.abandonnes)
             {
                 const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const AO & obj)
@@ -315,7 +314,7 @@ int main(int argc, char * argv[])
                 const auto w = atu.endpoint.y ;
                 const auto h = atu.endpoint.x ;
 
-                edge_segments(object_map, y, x, w, h, Staticness, Objectness);
+                edge_segments(object_map, angles, y, x, w, h, Staticness, Objectness);
 
                 if (Staticness > staticness_th && Objectness > objectness_th && Objectness < 1000000)
                 {
