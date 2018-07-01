@@ -48,11 +48,13 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     }
 
     //if 2 boxes overlap more then 60% of 1 of the boxes - then join it
-    for (size_t i = 0, sz = boxes.size(); sz && i < sz - 1; ++i)
+
+    for (size_t i = 0, back2 = 0, sz = boxes.size(); sz && i < sz - 1; ++i)
     {
         auto& b1 = boxes.at(i);
-        for (size_t j = i + 1; j < sz; ++j)
+        for (size_t j = std::max(i + 1, back2); j < sz; ++j)
         {
+            back2 = 0;
             const auto& b2 = boxes.at(j);
             const auto aj = (b1 & b2).area();
             if ( aj > 0.6 * b1.area() || aj > 0.6 * b2.area())
@@ -61,6 +63,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
                 sz -= 1;
                 boxes.erase(boxes.begin() + j);
                 i -= 1;
+                back2 = j - 1;
                 break;
             }
         }
@@ -93,11 +96,11 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             return o1.origin.y < o2.origin.y;
         return o1.origin.x < o2.origin.x;
     });
-    for (size_t j = 0, sz = candidat.size(); sz && (j < sz - 1); ++j)
+    for (size_t j = 0, back2 = 0, sz = candidat.size(); sz && (j < sz - 1); ++j)
     {
         auto& cj = candidat.at(j);
         if (cj.active())
-            for (size_t e = j + 1, r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
+            for (size_t e = std::max(j + 1, back2), r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
             {
                 auto& ce = candidat.at(e);
                 if (ce.active())
@@ -107,6 +110,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
                         ce.kill();
                         sz -= 1;
                         candidat.erase(candidat.begin() + e);
+                        back2 = e - 1;
                         j -= 1;
                         break;
                     }
