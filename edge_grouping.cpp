@@ -35,6 +35,10 @@ void objects::grouping(size_t j)
     for (size_t e = 0, sz = candidat.size(); e < sz; ++e)
     {
         auto& ce = candidat.at(e);
+
+        if (ce.skip())
+            continue;
+
         if (e != j && ce.positiongroup == 0)
         {
             if (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5)
@@ -77,6 +81,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
         }
     }
 
+    //making surrounding boxes to calculated contours
     for (const auto & boxe : boxes)
     {
         bool found = false;
@@ -121,7 +126,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
 
             //fixme: well, dunno, it seems logically for me to remove "skipped" candidate...
             //using "kill" recognizes woman as a whole bag at the end of movie + for 1 second recognizes bag in man's hands
-            //it.kill();
+            it.kill();
         }
     }
     cleanup(candidat);
@@ -130,14 +135,14 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     for (size_t j = 0, sz = candidat.size(); sz && (j < sz - 1); ++j)
     {
         const auto& cj = candidat.at(j);
-        fullbits_int_t label = candidat.at(j).positiongroup;
+        const fullbits_int_t label = candidat.at(j).positiongroup;
         cv::Rect obje;
         if (label != 0)
         {
             for (size_t e = j + 1, r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
             {
                 const auto& ce = candidat.at(e);
-                if (label == ce.positiongroup)//&& candidat[e].positiongroup!=0 )
+                if (label == ce.positiongroup)
                 {
                     if (r == 0)
                         obje = cv::Rect(cj.origin, cj.endpoint) | cv::Rect(ce.origin, ce.endpoint); //union of 2 Rects
@@ -148,7 +153,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             const cv::Point centre(obje.x + obje.width / 2, obje.y + obje.height / 2);
             bool found = false;
 
-            for (auto & abandonne : this->abandonnes)
+            for (auto & abandonne : abandonnes)
                 if (abandonne == centre)
                 {
                     found = true;
