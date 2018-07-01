@@ -193,6 +193,18 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     //segments parralelism with boundaries
     float anglesum_left = 0, anglesum_top = 0, anglesum_bot = 0, anglesum_right = 0;
     fullbits_int_t left = 0, right = 0, bot = 0, top = 0;
+
+
+    const auto static topleft = [](fullbits_int_t a, fullbits_int_t b)
+    {
+        return a + (b - a) / 3;
+    };
+
+    const auto static botright = [](fullbits_int_t a, fullbits_int_t b)
+    {
+        return a + 2 * (b - a) / 3;
+    };
+
     for (size_t i = 0; i < segcount; i++)
     {
         if (segw[i] >= 1) continue;
@@ -200,8 +212,11 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         auto angle = std::abs<float>(sin(meanO[i]));
         // pow(angle, 2);
 
+        const int yeq1 =  rr + (h - rr) / 3;
+        const int yeq2 =  rr + 2 * (h - rr) / 3;
+
         //top boundary
-        if (meanX[i] < cc + (w - cc) / 3 && meanY[i] > rr + (h - rr) / 3 && meanY[i] < rr + 2 * (h - rr) / 3)
+        if (meanX[i] < topleft(cc, w) && meanY[i] > yeq1 && meanY[i] < yeq2)
         {
 
             anglesum_top += std::abs<float>(angle - 1) * meanNB[i];
@@ -209,7 +224,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
 
         }
         //bot boundary
-        if (meanX[i] > cc + 2 * (w - cc) / 3 && meanY[i] > rr + (h - rr) / 3 && meanY[i] < rr + 2 * (h - rr) / 3)
+        if (meanX[i] > botright(cc, w) && meanY[i] >  yeq1  && meanY[i] < yeq2)
         {
 
             anglesum_bot += std::abs<float>(angle - 1) * meanNB[i];
@@ -217,16 +232,20 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
 
         }
 
+        const int xeq1 = cc + 2 * (w - cc) / 3;
+        const int xeq2 = cc + (w - cc) / 3;
+
         //left boundary
-        if (meanY[i] < rr + (h - rr) / 3 && meanX[i] < cc + 2 * (w - cc) / 3 && meanX[i] > cc + (w - cc) / 3)
+        if (meanY[i] < topleft(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
         {
 
             anglesum_left += std::abs<float>(angle * meanNB[i]);
             if (std::abs<float>(angle) < 0.5)  left += meanNB[i];
 
         }
+
         //right boundary
-        if (meanY[i] > rr + 2 * (h - rr) / 3 && meanX[i] < cc + 2 * (w - cc) / 3 && meanX[i] > cc + (w - cc) / 3)
+        if (meanY[i] > botright(rr, h) && meanX[i] < xeq1 && meanX[i] > xeq2)
         {
 
             anglesum_right += std::abs<float>(angle * meanNB[i]);
