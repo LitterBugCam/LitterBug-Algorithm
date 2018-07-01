@@ -35,6 +35,8 @@ extern bool debug;
 void edge_segments(const cv::Mat &object_map, const cv::Mat &dir1, fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullbits_int_t h, float &score, float &circularity);
 
 //well, instead using arrays and wasting a lot of memory, lets use map, however, it has limitations to 32-bit index
+
+//this class works good with low amount of objects
 template<class T>
 class ZeroedMapArray
 {
@@ -76,6 +78,8 @@ public:
 };
 
 //this will keep for experiments, so can just change between ZeroedMapArray / ZeroedArray in declaration only
+
+//this class works good with big amount of objects
 template <class T>
 class ZeroedArray
 {
