@@ -126,16 +126,18 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     }
     cleanup(candidat);
 
-    for (size_t j = 0, sz = candidat.size(); j < sz; ++j)
+
+    for (size_t j = 0, sz = candidat.size(); sz && (j < sz - 1); ++j)
     {
         const auto& cj = candidat.at(j);
         fullbits_int_t label = candidat.at(j).positiongroup;
         cv::Rect obje;
         if (label != 0)
-            for (size_t e = j, r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
+        {
+            for (size_t e = j + 1, r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
             {
                 const auto& ce = candidat.at(e);
-                if (e != j && label == ce.positiongroup)//&& candidat[e].positiongroup!=0 )
+                if (label == ce.positiongroup)//&& candidat[e].positiongroup!=0 )
                 {
                     if (r == 0)
                         obje = cv::Rect(cj.origin, cj.endpoint) | cv::Rect(ce.origin, ce.endpoint); //union of 2 Rects
@@ -143,18 +145,14 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
                         obje = cv::Rect(ce.origin, ce.endpoint) | obje;
                 }
             }
-        const cv::Point centre(obje.x + obje.width / 2, obje.y + obje.height / 2);
-        bool found = false;
+            const cv::Point centre(obje.x + obje.width / 2, obje.y + obje.height / 2);
+            bool found = false;
 
-        if (centre.x != 0 && centre.y != 0)
-        {
             for (auto & abandonne : this->abandonnes)
                 if (abandonne == centre)
                 {
                     found = true;
                     abandonne.tick(obje, centre);
-
-                    //~ break;
                 }
             if (!found)
                 abandonnes.emplace_back(obje, centre);
