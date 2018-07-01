@@ -115,9 +115,9 @@ int main(int argc, char * argv[])
         resize(image, image, cv::Size(image.cols * resize_scale, image.rows * resize_scale));
 
     const auto zeroMatrix8U  = cv::Mat::zeros(image.size(), CV_8UC1);
-    const auto zeroMatrix16U = cv::Mat::zeros(image.size(), CV_16U);
+    const auto zeroMatrix16S = cv::Mat::zeros(image.size(), CV_16S);
     const auto zeroMatrix32F = cv::Mat::zeros(image.size(), CV_32F);
-    const auto ffMatrix8UC3  = cv::Mat::ones(image.size(), CV_8UC1) * 255;
+    const auto ffMatrix8UC3  = cv::Mat::ones(image.size(), CV_8UC3) * 255;
 
 
     cv::Mat abandoned_map = zeroMatrix8U;
@@ -307,10 +307,11 @@ int main(int argc, char * argv[])
                 float Staticness = 0, Objectness = 0;
 
                 dirsum = zeroMatrix32F;
-                segmap = zeroMatrix16U;
+                segmap = zeroMatrix16S;
                 //let compiler optimize this hard (added const)
                 const auto y = atu.origin.y;
                 const auto x = atu.origin.x;
+                //dont you think it is suspicous - reverted w/h (and seems reverted again in edge_segment)
                 const auto w = atu.endpoint.y ;
                 const auto h = atu.endpoint.x ;
 

@@ -12,9 +12,12 @@
  */
 #ifndef SCORING_H
 #define SCORING_H
+#include <cstdint>
 #include "Litterheaders.h"
 
 #define PI 3.14159265f
+
+using segmap_t = int16_t;
 
 extern bool stop;
 extern cv::Mat normm, dir1, foreground1, segmap, dirsum, finalmap, bw, bw1, object_map;
