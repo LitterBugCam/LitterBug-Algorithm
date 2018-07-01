@@ -27,8 +27,8 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
                 bool neib = false;
                 bool isolated = true;
 
-                for (fullbits_int_t r0 = -1; r0 <= 1; r0++)
-                    for (fullbits_int_t c0 = -1; c0 <= 1; c0++)
+                for (fullbits_int_t r0 = -1; r0 <= 1; ++r0)
+                    for (fullbits_int_t c0 = -1; c0 <= 1; ++c0)
                     {
 
                         fullbits_int_t c1 = c + c0;
@@ -131,16 +131,16 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
     std::map<fullbits_int_t, std::map<fullbits_int_t, bool>> afinityidx;
 
     //compute inter-segments affinities
-    for (fullbits_int_t r = rr + 2; r < h - 1; r++)
-        for (fullbits_int_t c = cc + 2; c < w - 1; c++)
+    for (fullbits_int_t r = rr + 2; r < h - 1; ++r)
+        for (fullbits_int_t c = cc + 2; c < w - 1; ++c)
         {
 
             fullbits_int_t s0 = segmap.at<segmap_t>(c, r);
             if (s0 <= 0)
                 continue;
 
-            for (fullbits_int_t rd = -2; rd <= 2; rd++)
-                for (fullbits_int_t cd = -2; cd <= 2; cd++)
+            for (fullbits_int_t rd = -2; rd <= 2; ++rd)
+                for (fullbits_int_t cd = -2; cd <= 2; ++cd)
                 {
                     fullbits_int_t s1 = segmap.at<segmap_t>(c + cd, r + rd);
                     if (s1 <= s0)
@@ -185,7 +185,7 @@ void edge_segments(fullbits_int_t cc, fullbits_int_t rr, fullbits_int_t w, fullb
         return a + 2 * (b - a) / 3;
     };
 
-    for (size_t i = 0; i < segcount; i++)
+    for (size_t i = 0; i < segcount; ++i)
     {
         if (segw[i] >= 1) continue;
 
