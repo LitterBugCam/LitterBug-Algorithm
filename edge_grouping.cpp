@@ -1,5 +1,6 @@
 #include "edge_grouping.h"
 #include <limits>
+#include "scoring.h"
 
 cv::Point::value_type objects::minDistance(const cv::Point& p1, const cv::Point& p2, const cv::Point& q1, const cv::Point& q2)
 {
@@ -134,4 +135,14 @@ objects::objects(long framesCount)
     reserve(framesCount);
 }
 
+es_param_t object::getScoreParams(fullbits_int_t rows, fullbits_int_t cols) const
+{
+    const auto y = std::max(origin.y, 6);
+    const auto x = std::max(origin.x, 6);
 
+    const auto ey = std::min(endpoint.y, rows - 6);
+    const auto ex = std::min(endpoint.x, cols  - 6);
+
+    //dont you think it is suspicous - reverted w/h (and seems reverted again in edge_segment)
+    return {y, x, ey, ex};
+}

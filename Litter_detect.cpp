@@ -119,10 +119,8 @@ int main(int argc, char * argv[])
 
     cv::Mat abandoned_map = zeroMatrix8U;
 
-    double alpha_S;
-    double alpha_init = 0.01;
-    alpha_S = alpha_init;
-    // imshow("gray",image);
+    const static double alpha_init = 0.01;
+    double alpha_S = alpha_init;
 
     objects abandoned_objects(framesCount);
     cv::Mat B_Sx, B_Sy;
@@ -261,7 +259,6 @@ int main(int argc, char * argv[])
             threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
 
             double t2 = ((double) getTickCount() - t) / getTickFrequency();
-            //      cout << " static region FPS  " << 1 / t2 << endl;
             meanfps_static = meanfps_static + (1 / t2);
             abandoned_objects.populateObjects(frame, i);
             ZeroedArray<uint8_t> canny(0);
@@ -277,30 +274,11 @@ int main(int argc, char * argv[])
                 cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
             }
 
-            obj_collection po;
-            po.reserve(abandoned_objects.candidat.size());
-
-            for (auto& atu : abandoned_objects.candidat)
+            for (const auto& atu : abandoned_objects.candidat)
             {
-                const bool process = po.cend() != std::find_if(po.cbegin(), po.cend(), [&atu](const object & obj)
-                {
-                    return std::abs(obj.origin.x - atu.origin.x) < 20 && std::abs(obj.origin.y - atu.origin.y) < 20
-                           && std::abs(obj.endpoint.x - atu.endpoint.x) < 20 && std::abs(obj.endpoint.y - atu.endpoint.y) < 20;
-                });
-                if (process) continue;
-                po.push_back(atu);
-                sortX(po);
 
                 if (std::abs(atu.origin.y - atu.endpoint.y) < 15 || std::abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
-
-                atu.origin.y = std::max(atu.origin.y, 6);
-                atu.origin.x = std::max(atu.origin.x, 6);
-
-                atu.endpoint.y = std::min(atu.endpoint.y, image.rows - 6);
-                atu.endpoint.x = std::min(atu.endpoint.x, image.cols - 6);
-
-                //dont you think it is suspicous - reverted w/h (and seems reverted again in edge_segment)
-                es_param_t params(atu.origin.y, atu.origin.x, atu.endpoint.y, atu.endpoint.x);
+                es_param_t params = atu.getScoreParams(image.rows, image.cols);
                 edge_segments(object_map, angles, canny, params);
                 if (params.score > staticness_th && params.circularity > objectness_th && params.circularity < 1000000)
                 {
@@ -309,7 +287,7 @@ int main(int argc, char * argv[])
                     rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
                 }
             }
-            //ok,those 2 take around -5 fps on i7
+
             //std::cout << "Objects count: " << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
             std::string text = "FPS: " + std::to_string(meanfps / (i + 1));
             cv::putText(image,
@@ -320,7 +298,8 @@ int main(int argc, char * argv[])
                         cv::Scalar(255, 255, 255), // BGR Color
                         1, // Line Thickness
                         CV_AA); // Anti-alias
-            imshow("output", image);
+
+            imshow("output", image);//ok,those 2 take around -5 fps on i7
             waitKey(10);
         }
         t = ((double) getTickCount() - t) / getTickFrequency();

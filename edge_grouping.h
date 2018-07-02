@@ -122,6 +122,8 @@ public:
     {
         activeness = -100;
     }
+
+    struct es_param_t getScoreParams(fullbits_int_t rows, fullbits_int_t cols) const;
 };
 using obj_collection = std::vector<object>;
 class objects
