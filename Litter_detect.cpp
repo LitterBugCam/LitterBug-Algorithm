@@ -68,10 +68,6 @@ int main(int argc, char * argv[])
 {
     using namespace cv;
 
-    float meanfps = 0;
-    float meanfps_static = 0;
-
-
     std::ofstream results;
     results.open ("detected_litters.txt");
     results << "        detected litters \n\n";
@@ -160,6 +156,11 @@ int main(int argc, char * argv[])
     ZeroedArray<uint8_t> object_map(0);
     ZeroedArray<float> angles(0);
     cv::Mat not_used;
+
+#ifndef NO_FPS
+    float meanfps = 0;
+#endif
+
     for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
     {
 #ifndef NO_FPS
@@ -312,9 +313,10 @@ int main(int argc, char * argv[])
             waitKey(10);
 #endif
         }
+
+#ifndef NO_FPS
         t = ((double) getTickCount() - t) / getTickFrequency();
         meanfps =  (1 / t) + meanfps;
-#ifndef NO_FPS
         if (i % 50 == 0 )
             std::cerr << "FPS  " << meanfps / (i + 1) << ", Objects: " << abandoned_objects.candidat.size() << std::endl;
 #endif
