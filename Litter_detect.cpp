@@ -142,7 +142,6 @@ int main(int argc, char * argv[])
 
     objects abandoned_objects(framesCount);
     cv::Mat B_Sx, B_Sy;
-    std::vector<size_t> indexes;
 
     for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
     {
@@ -172,13 +171,6 @@ int main(int argc, char * argv[])
         cv::Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
         cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
-        if (indexes.size() != static_cast<size_t>(image.rows * image.cols))
-        {
-            indexes.resize(image.rows * image.cols);
-            std::generate(indexes.begin(), indexes.end(), UniqueIndex());
-            assert(indexes.at(0) == 0);
-            assert(indexes.at(1) == 1);
-        }
 
         if (i == 0)
         {
@@ -198,10 +190,6 @@ int main(int argc, char * argv[])
             B_Sy = B_Sy + alpha_S * D_Sy;
 
 
-
-
-
-
             assert(abandoned_map.isContinuous());
             assert(F_Sx.isContinuous());
             assert(F_Sy.isContinuous());
@@ -210,13 +198,15 @@ int main(int argc, char * argv[])
             assert(D_Sx.isContinuous());
             assert(D_Sy.isContinuous());
 
-            auto plain_map_ptr = abandoned_map.ptr<uchar>();
+
             if (i % framemod2 == 0)
-                ALG_NS::for_each(indexes.cbegin(), indexes.cend(), [&plain_map_ptr](size_t i)
             {
-                if (*(plain_map_ptr + i) > 0) //catching overflows
-                    *(plain_map_ptr + i) -= 1;
-            });
+                auto plain_map_ptr = abandoned_map.ptr<uchar>();
+                for (size_t i = 0, sz = image.rows * image.cols; i < sz; ++i)
+                    if (*(plain_map_ptr + i)) //overflow prot
+                        *(plain_map_ptr + i) -= 1;
+            }
+
 
             //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
             auto* abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
@@ -226,6 +216,7 @@ int main(int argc, char * argv[])
             auto* grad_y_ptr = grad_y.ptr<float>(1, 1);
             auto* D_Sx_ptr = D_Sx.ptr<float>(1, 1);
             auto* D_Sy_ptr = D_Sy.ptr<float>(1, 1);
+
 
             for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
             {

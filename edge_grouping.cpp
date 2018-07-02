@@ -116,10 +116,9 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             }
     }
 
-    ALG_NS::for_each(candidat.begin(), candidat.end(), [](object & c)
-    {
+    for (auto& c : candidat)
         c.deactivate();
-    });
+
     cleanup(candidat);
 }
 
