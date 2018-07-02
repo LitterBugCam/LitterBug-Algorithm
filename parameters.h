@@ -30,8 +30,8 @@ void setParam(const std::string& src, void* param)
 //important parameters
 DECLARE_PARAM(float, staticness_th) ; // Staticness score threshold (degree of the object being static)
 DECLARE_PARAM(double, objectness_th); //  Objectness score threshold (probability that the rectangle contain an object)
-DECLARE_PARAM(fullbits_int_t, aotime); //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
-DECLARE_PARAM(fullbits_int_t, aotime2); // Half or more of aotime
+DECLARE_PARAM(uint8_t, aotime); //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
+DECLARE_PARAM(uint8_t, aotime2); // Half or more of aotime
 DECLARE_PARAM(double, alpha); // background scene learning rate
 DECLARE_PARAM(double, fore_th); // Threshold moving edges segmentation
 

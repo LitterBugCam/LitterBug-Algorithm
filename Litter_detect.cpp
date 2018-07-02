@@ -13,8 +13,8 @@
 //important parameters
 DECLARE_PARAM(float, staticness_th) ; // Staticness score threshold (degree of the object being static)
 DECLARE_PARAM(double, objectness_th); //  Objectness score threshold (probability that the rectangle contain an object)
-DECLARE_PARAM(fullbits_int_t, aotime); //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
-DECLARE_PARAM(fullbits_int_t, aotime2); // Half or more of aotime
+DECLARE_PARAM(uint8_t, aotime); //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
+DECLARE_PARAM(uint8_t, aotime2); // Half or more of aotime
 DECLARE_PARAM(double, alpha); // background scene learning rate
 DECLARE_PARAM(double, fore_th); // Threshold moving edges segmentation
 
@@ -36,8 +36,8 @@ const static std::map<std::string, std::function<void(const std::string& src)>> 
     //important parameters
     DECLARE_PARAM(float, staticness_th), // Staticness score threshold (degree of the object being static)
     DECLARE_PARAM(double, objectness_th), //  Objectness score threshold (probability that the rectangle contain an object)
-    DECLARE_PARAM(fullbits_int_t, aotime), //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
-    DECLARE_PARAM(fullbits_int_t, aotime2), // Half or more of aotime
+    DECLARE_PARAM(uint8_t, aotime), //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
+    DECLARE_PARAM(uint8_t, aotime2), // Half or more of aotime
     DECLARE_PARAM(double, alpha), // background scene learning rate
     DECLARE_PARAM(double, fore_th), // Threshold moving edges segmentation
 
@@ -51,6 +51,16 @@ const static std::map<std::string, std::function<void(const std::string& src)>> 
     DECLARE_PARAM(float, resize_scale), // Image resize scale
 };
 #undef DECLARE_PARAM
+
+struct UniqueIndex
+{
+    size_t current{0};
+    size_t operator()()
+    {
+        return current++;
+    }
+};
+
 
 int main(int argc, char * argv[])
 {
@@ -86,6 +96,13 @@ int main(int argc, char * argv[])
                 std::cerr << "Unknown parameter line: " << tmp << std::endl;
         }
     }
+
+    if (aotime <= aotime2)
+    {
+        std::cerr << "aotime must be greater then aotime2" << std::endl;
+        exit(5);
+    }
+
     char * videopath = nullptr;
 
 
@@ -125,6 +142,8 @@ int main(int argc, char * argv[])
 
     objects abandoned_objects(framesCount);
     cv::Mat B_Sx, B_Sy;
+    std::vector<size_t> indexes;
+
     for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
     {
         auto t = static_cast<double>(getTickCount());
@@ -153,6 +172,13 @@ int main(int argc, char * argv[])
         cv::Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
         cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
+        if (indexes.size() != static_cast<size_t>(image.rows * image.cols))
+        {
+            indexes.resize(image.rows * image.cols);
+            std::generate(indexes.begin(), indexes.end(), UniqueIndex());
+            assert(indexes.at(0) == 0);
+            assert(indexes.at(1) == 1);
+        }
 
         if (i == 0)
         {
@@ -173,8 +199,7 @@ int main(int argc, char * argv[])
 
 
 
-            if (i % framemod2 == 0)
-                abandoned_map -= 1;
+
 
 
             assert(abandoned_map.isContinuous());
@@ -185,73 +210,76 @@ int main(int argc, char * argv[])
             assert(D_Sx.isContinuous());
             assert(D_Sy.isContinuous());
 
+            auto plain_map_ptr = abandoned_map.ptr<uchar>();
+            if (i % framemod2 == 0)
+                ALG_NS::for_each(indexes.cbegin(), indexes.cend(), [&plain_map_ptr](size_t i)
+            {
+                if (*(plain_map_ptr + i) > 0) //catching overflows
+                    *(plain_map_ptr + i) -= 1;
+            });
+
+            //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
+            auto* abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
+            auto* F_Sx_ptr = F_Sx.ptr<uchar>(1, 1);
+            auto* F_Sy_ptr = F_Sy.ptr<uchar>(1, 1);
+            auto* grad_x_ptr = grad_x.ptr<float>(1, 1);
+            auto* grad_y_ptr = grad_y.ptr<float>(1, 1);
+            auto* D_Sx_ptr = D_Sx.ptr<float>(1, 1);
+            auto* D_Sy_ptr = D_Sy.ptr<float>(1, 1);
+
             for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
             {
-                //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
-                auto* abandoned_map_ptr = abandoned_map.ptr<uchar>(j, 1);
-                auto* abandoned_map_ptr_forward = abandoned_map.ptr<uchar>(j + 1, 1);
-                auto* abandoned_map_ptr_back = abandoned_map.ptr<uchar>(j - 1, 1);
-
-                //F_Sx
-                auto* F_Sx_ptr = F_Sx.ptr<uchar>(j, 1);
-
-                //F_Sy
-                auto* F_Sy_ptr = F_Sy.ptr<uchar>(j, 1);
-
-                //grad_x
-                auto* grad_x_ptr = grad_x.ptr<float>(j, 1);
-
-                //grad_y
-                auto* grad_y_ptr = grad_y.ptr<float>(j, 1);
-
-                //D_Sx
-                auto* D_Sx_ptr = D_Sx.ptr<float>(j, 1);
-
-                //D_Sy
-                auto* D_Sy_ptr = D_Sy.ptr<float>(j, 1);
-
                 for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
                 {
-                    if (abs(*D_Sx_ptr) > fore_th && abs(*grad_x_ptr) >= 20) *F_Sx_ptr = 255;
-                    if (abs(*D_Sy_ptr) > fore_th && abs(*grad_y_ptr) >= 20) *F_Sy_ptr = 255;
+                    auto *point = abandoned_map_ptr + k;
 
-                    // cout<<"Fx value"<<(float)abs(*grad_y_ptr)<<endl;
+                    if (std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20)
+                        *(F_Sx_ptr + k) = 255;
+
+                    if (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20)
+                        *(F_Sy_ptr + k) = 255;
 
                     if (i > frameinit && i % framemod2 == 0)
                     {
-                        //alpha_S = 0.0005;
 
-                        if (*F_Sx_ptr == 255 || *F_Sy_ptr == 255) //&& abandoned_map.at<uchar>(j,k)<255)
-                            *abandoned_map_ptr += 2;
 
-                        // for (fullbits_int_t r0 = -1; r0 <= 1; r0++)
-                        //{
-                        for (fullbits_int_t c0 = -1; c0 <= 1; ++c0)
-                        {
-                            // fullbits_int_t j1 = j + r0;
-                            //fullbits_int_t k1 = k + c0;
-                            // 60-30 PETS 120-80 AVSS
+                        //prevening overflow here
+                        //btw original code COULD overflow on whites...
+                        if (*(F_Sx_ptr + k) == 255 || *(F_Sy_ptr + k) == 255)
+                            *point = static_cast<std::remove_pointer<decltype(point)>::type>(std::min(2 + *point, static_cast<int>(255)));
 
-                            if ((*abandoned_map_ptr + c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
-                                *abandoned_map_ptr = aotime;
 
-                            if ((*abandoned_map_ptr_forward + c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
-                                *abandoned_map_ptr = aotime;
+                        if (*point > aotime2 && *point < aotime)
+                            for (fullbits_int_t c0 = -1; c0 <= 1; ++c0)
+                            {
+                                if (c0 && *(point + c0) > aotime) //excluding c0 = 0 which is meself
+                                {
+                                    *point = aotime;
+                                    break;
+                                }
 
-                            if ((*abandoned_map_ptr_back + c0) > aotime && *abandoned_map_ptr > aotime2 && *abandoned_map_ptr < aotime)
-                                *abandoned_map_ptr = aotime;
-                        }
+                                if (*(point + image.cols + c0) > aotime )
+                                {
+                                    *point = aotime;
+                                    break;
+                                }
+
+                                if (*(point - image.cols + c0) > aotime )
+                                {
+                                    *point = aotime;
+                                    break;
+                                }
+                            }
                     }
-                    ++abandoned_map_ptr;
-                    ++F_Sy_ptr;
-                    ++F_Sx_ptr;
-                    ++grad_x_ptr;
-                    ++grad_y_ptr;
-                    ++D_Sx_ptr;
-                    ++D_Sy_ptr;
-                    ++abandoned_map_ptr_forward;
-                    ++abandoned_map_ptr_back;
                 }
+
+                F_Sy_ptr          += image.cols;
+                F_Sx_ptr          += image.cols;
+                grad_x_ptr        += image.cols;
+                grad_y_ptr        += image.cols;
+                D_Sx_ptr          += image.cols;
+                D_Sy_ptr          += image.cols;
+                abandoned_map_ptr += image.cols;
             }
             cv::Mat frame     = zeroMatrix8U;
             threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
@@ -272,7 +300,7 @@ int main(int argc, char * argv[])
                 cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
             }
 
-            for (const auto& atu : abandoned_objects.candidat)
+            for (auto& atu : abandoned_objects.candidat)
             {
 
                 if (std::abs(atu.origin.y - atu.endpoint.y) < 15 || std::abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
@@ -280,14 +308,18 @@ int main(int argc, char * argv[])
                 edge_segments(object_map, angles, canny, params);
                 if (params.score > staticness_th && params.circularity > objectness_th && params.circularity < 1000000)
                 {
+                    //hm, lets do cheat, if we dispplay object then +1 to life
+                    atu.activate();
                     results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
                     const static Scalar color(0, 0, 255);
                     rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
                 }
+                else
+                    atu.deactivate(); //otherwise -1 to life
             }
 
             //std::cout << "Objects count: " << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
-            std::string text = "FPS: " + std::to_string(meanfps / (i + 1));
+            std::string text = "FPS: " + std::to_string(meanfps / (i + 1)) + ", candidats count: " + std::to_string(abandoned_objects.candidat.size());
             cv::putText(image,
                         text,
                         cv::Point(5, 20), // Coordinates
