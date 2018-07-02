@@ -187,40 +187,30 @@ int main(int argc, char * argv[])
 
             for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
             {
-                uchar* abandoned_map_ptr = abandoned_map.ptr<uchar>(j) + 1;
-                uchar* abandoned_map_ptr_forward = abandoned_map.ptr<uchar>(j + 1) + 1;
-                uchar* abandoned_map_ptr_back = abandoned_map.ptr<uchar>(j - 1) + 1;
-
-                const uchar* abandoned_map_endPixel = abandoned_map_ptr + abandoned_map.cols - 1;
+                //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
+                auto* abandoned_map_ptr = abandoned_map.ptr<uchar>(j, 1);
+                auto* abandoned_map_ptr_forward = abandoned_map.ptr<uchar>(j + 1, 1);
+                auto* abandoned_map_ptr_back = abandoned_map.ptr<uchar>(j - 1, 1);
 
                 //F_Sx
-                uchar* F_Sx_ptr = F_Sx.ptr<uchar>(j) + 1;
-                //const uchar* F_Sx_endPixel = F_Sx_ptr + abandoned_map.cols-1;
+                auto* F_Sx_ptr = F_Sx.ptr<uchar>(j, 1);
 
                 //F_Sy
-                uchar* F_Sy_ptr = F_Sy.ptr<uchar>(j) + 1;
-                // const uchar* F_Sy_endPixel = F_Sy_ptr + abandoned_map.cols -1;
+                auto* F_Sy_ptr = F_Sy.ptr<uchar>(j, 1);
 
                 //grad_x
-                float* grad_x_ptr = grad_x.ptr<float>(j) + 1;
-                //const float* grad_x_endPixel = grad_x_ptr + abandoned_map.cols-1;
+                auto* grad_x_ptr = grad_x.ptr<float>(j, 1);
 
                 //grad_y
-                float* grad_y_ptr = grad_y.ptr<float>(j) + 1;
-                // const float* grad_y_endPixel = grad_y_ptr + abandoned_map.cols-1;
-
+                auto* grad_y_ptr = grad_y.ptr<float>(j, 1);
 
                 //D_Sx
-                float* D_Sx_ptr = D_Sx.ptr<float>(j) + 1;
-                //const float* D_Sx_endPixel = D_Sx_ptr + abandoned_map.cols-1;
+                auto* D_Sx_ptr = D_Sx.ptr<float>(j, 1);
 
                 //D_Sy
-                float* D_Sy_ptr = D_Sy.ptr<float>(j) + 1;
-                //const float* D_Sy_endPixel = D_Sy_ptr + abandoned_map.cols-1;
+                auto* D_Sy_ptr = D_Sy.ptr<float>(j, 1);
 
-
-                //for (fullbits_int_t k = 1; k < image.cols - 1; k++) {
-                while (abandoned_map_ptr != abandoned_map_endPixel)
+                for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
                 {
                     if (abs(*D_Sx_ptr) > fore_th && abs(*grad_x_ptr) >= 20) *F_Sx_ptr = 255;
                     if (abs(*D_Sy_ptr) > fore_th && abs(*grad_y_ptr) >= 20) *F_Sy_ptr = 255;
@@ -253,12 +243,10 @@ int main(int argc, char * argv[])
                         }
                     }
                     ++abandoned_map_ptr;
-                    //object_map_ptr++;
                     ++F_Sy_ptr;
                     ++F_Sx_ptr;
                     ++grad_x_ptr;
                     ++grad_y_ptr;
-                    //result_ptr++;
                     ++D_Sx_ptr;
                     ++D_Sy_ptr;
                     ++abandoned_map_ptr_forward;
