@@ -207,18 +207,17 @@ int main(int argc, char * argv[])
                         *(plain_map_ptr + i) -= 1;
             }
 
-
-            //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
-            auto* abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
-            auto* F_Sx_ptr = F_Sx.ptr<uchar>(1, 1);
-            auto* F_Sy_ptr = F_Sy.ptr<uchar>(1, 1);
-            auto* grad_x_ptr = grad_x.ptr<float>(1, 1);
-            auto* grad_y_ptr = grad_y.ptr<float>(1, 1);
-            auto* D_Sx_ptr = D_Sx.ptr<float>(1, 1);
-            auto* D_Sy_ptr = D_Sy.ptr<float>(1, 1);
-
-
             if (i > frameinit && i % framemod2 == 0)
+            {
+                //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
+                auto abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
+                auto F_Sx_ptr = F_Sx.ptr<uchar>(1, 1);
+                auto F_Sy_ptr = F_Sy.ptr<uchar>(1, 1);
+                auto grad_x_ptr = grad_x.ptr<float>(1, 1);
+                auto grad_y_ptr = grad_y.ptr<float>(1, 1);
+                auto D_Sx_ptr = D_Sx.ptr<float>(1, 1);
+                auto D_Sy_ptr = D_Sy.ptr<float>(1, 1);
+
                 for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
                 {
                     for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
@@ -269,6 +268,7 @@ int main(int argc, char * argv[])
                     D_Sy_ptr          += image.cols;
                     abandoned_map_ptr += image.cols;
                 }
+            }
             cv::Mat frame     = zeroMatrix8U;
             threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
 
