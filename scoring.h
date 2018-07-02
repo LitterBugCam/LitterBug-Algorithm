@@ -13,6 +13,7 @@
 #ifndef SCORING_H
 #define SCORING_H
 #include <cstdint>
+#include <cassert>
 #include <map>
 #include <unordered_map>
 
@@ -95,11 +96,13 @@ public:
 
     T at(uint32_t y, uint32_t x) const
     {
+        assert(storage.type() == cv::DataType<T>::type);
         return storage.at<T>(y, x);
     }
 
     T& at(uint32_t y, uint32_t x)
     {
+        assert(storage.type() == cv::DataType<T>::type);
         return storage.at<T>(y, x);
     }
     cv::Mat& getStorage()
