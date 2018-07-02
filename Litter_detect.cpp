@@ -54,16 +54,6 @@ const static std::map<std::string, std::function<void(const std::string& src)>> 
 };
 #undef DECLARE_PARAM
 
-struct UniqueIndex
-{
-    size_t current{0};
-    size_t operator()()
-    {
-        return current++;
-    }
-};
-
-
 int main(int argc, char * argv[])
 {
     using namespace cv;
@@ -103,6 +93,21 @@ int main(int argc, char * argv[])
         std::cerr << "aotime must be greater then aotime2" << std::endl;
         exit(5);
     }
+
+#ifndef NO_FPS
+    std::cout << "Using FPS" << std::endl;
+#else
+    std::cout << "NOT using FPS" << std::endl;
+#endif
+
+#ifndef NO_GUI
+    std::cout << "Using GUI" << std::endl;
+#else
+    std::cout << "NOT using GUI" << std::endl;
+#endif
+    std::cout.flush();
+
+
 
     char * videopath = nullptr;
 

@@ -14,7 +14,7 @@ HEADERS += \
     ../parameters.h \
     ../scoring.h
 
-LIBS += -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_videoio
+LIBS += -lopencv_core -lopencv_videoio -lopencv_imgproc -lopencv_highgui
 
 QMAKE_CXXFLAGS +=  -Wctor-dtor-privacy -Werror=delete-non-virtual-dtor -fstrict-aliasing
 QMAKE_CXXFLAGS +=  -Werror=strict-aliasing -Wstrict-aliasing=2
