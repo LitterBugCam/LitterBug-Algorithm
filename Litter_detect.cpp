@@ -9,7 +9,7 @@
 //see here: https://habr.com/post/415737/
 
 //this must be once per program - this allocates actual memory
-#define DECLARE_PARAM(TYPE, NAME) TYPE NAME
+#define DECLARE_PARAM(TYPE, NAME) TYPE NAME = 0
 //important parameters
 DECLARE_PARAM(float, staticness_th) ; // Staticness score threshold (degree of the object being static)
 DECLARE_PARAM(double, objectness_th); //  Objectness score threshold (probability that the rectangle contain an object)
@@ -26,6 +26,7 @@ DECLARE_PARAM(fullbits_int_t, framemod);
 DECLARE_PARAM(fullbits_int_t, framemod2);
 DECLARE_PARAM(fullbits_int_t, minsize); // Static object minimum size
 DECLARE_PARAM(float, resize_scale); // Image resize scale
+DECLARE_PARAM(float, fps_life); // activeness of candidates = fps * fps_life
 #undef DECLARE_PARAM
 
 
@@ -49,6 +50,7 @@ const static std::map<std::string, std::function<void(const std::string& src)>> 
     DECLARE_PARAM(fullbits_int_t, framemod2),
     DECLARE_PARAM(fullbits_int_t, minsize), // Static object minimum size
     DECLARE_PARAM(float, resize_scale), // Image resize scale
+    DECLARE_PARAM(float, fps_life), // activeness of candidates = fps * fps_life
 };
 #undef DECLARE_PARAM
 
@@ -117,7 +119,9 @@ int main(int argc, char * argv[])
 
     cv::VideoCapture capture(videopath);
     const auto framesCount = static_cast<long>(capture.get(CV_CAP_PROP_FRAME_COUNT));
+    const auto fps         = std::max(1l, static_cast<long>(capture.get(CV_CAP_PROP_FPS)));
     capture.set(CV_CAP_PROP_BUFFERSIZE, 1);
+
 
 
     cv::Mat image;
@@ -140,7 +144,10 @@ int main(int argc, char * argv[])
     const static double alpha_init = 0.01;
     double alpha_S = alpha_init;
 
-    objects abandoned_objects(framesCount);
+    //2nd param shows how long object should live initially (it was 40 by default)
+    //however, lets say 1 second of real time video
+    objects abandoned_objects(framesCount, fps);
+
     cv::Mat B_Sx, B_Sy;
     cv::Mat grad_x, grad_y;
     cv::Mat gray;
@@ -269,20 +276,19 @@ int main(int argc, char * argv[])
 
             for (auto& atu : abandoned_objects.candidat)
             {
-
-                if (std::abs(atu.origin.y - atu.endpoint.y) < 15 || std::abs(atu.origin.x - atu.endpoint.x) < minsize) continue;
-                es_param_t params = atu.getScoreParams(image.rows, image.cols);
-                edge_segments(object_map, angles, canny, params);
-                if (params.score > staticness_th && params.circularity > objectness_th && params.circularity < 1000000)
+                if (!atu.isTooSmall(minsize))
                 {
-                    //hm, lets do cheat, if we dispplay object then +1 to life
-                    atu.activate();
-                    results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
-                    const static Scalar color(0, 0, 255);
-                    rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
+                    es_param_t params = atu.getScoreParams(image.rows, image.cols);
+                    edge_segments(object_map, angles, canny, params);
+                    if (params.score > staticness_th && params.circularity > objectness_th && params.circularity < 1000000)
+                    {
+                        //hm, lets do cheat, if we display object then +1 to life
+                        atu.extraLife();
+                        results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
+                        const static Scalar color(0, 0, 255);
+                        rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
+                    }
                 }
-                else
-                    atu.deactivate(); //otherwise -1 to life
             }
 
             //std::cout << "Objects count: " << ", candidate=" << abandoned_objects.candidat.size() << std::endl;

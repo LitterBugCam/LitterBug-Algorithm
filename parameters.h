@@ -21,33 +21,6 @@ void setParam(const std::string& src, void* param)
     *static_cast<T*>(param) = str2num<T>(src);
 }
 
-
-
-//this macro allows to use copy-paste easy to cpp file, it will be redefined later in main cpp file
-//if anything added here, it MUST be copy-pasted to Litter_detect.cpp
-
-#define DECLARE_PARAM(TYPE, NAME) extern TYPE NAME
-//important parameters
-DECLARE_PARAM(float, staticness_th) ; // Staticness score threshold (degree of the object being static)
-DECLARE_PARAM(double, objectness_th); //  Objectness score threshold (probability that the rectangle contain an object)
-DECLARE_PARAM(uint8_t, aotime); //aotime*framemod2= number of frames the objects must be  static// if set too low, maybe cause false detections !!
-DECLARE_PARAM(uint8_t, aotime2); // Half or more of aotime
-DECLARE_PARAM(double, alpha); // background scene learning rate
-DECLARE_PARAM(double, fore_th); // Threshold moving edges segmentation
-
-
-//Less important parameters
-DECLARE_PARAM(bool, low_light); // if night scene
-DECLARE_PARAM(fullbits_int_t, frameinit); // Frames needed for learning the background
-DECLARE_PARAM(fullbits_int_t, framemod);
-DECLARE_PARAM(fullbits_int_t, framemod2);
-DECLARE_PARAM(fullbits_int_t, minsize); // Static object minimum size
-DECLARE_PARAM(float, resize_scale); // Image resize scale
-
-#undef DECLARE_PARAM
-
-
-
 // trim from start (in place)
 inline void ltrim(std::string &s)
 {

@@ -32,10 +32,6 @@ cv::Point::value_type objects::minDistance(const cv::Point& p1, const cv::Point&
 
 void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
 {
-    static std::vector<cv::Rect> boxes;
-    static std::vector<std::vector<cv::Point>> contours;
-    static std::vector<cv::Vec4i> hierarchy;
-
     boxes.clear();
     contours.clear();
     hierarchy.clear();
@@ -85,14 +81,12 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             }
         }
         if (!found)
-            candidat.emplace_back(box_center, boxe, newindex);
+            candidat.emplace_back(box_center, boxe, newindex, obj_activeness);
     }
 
     //grouping all closest which are not grouped yet
     std::sort(candidat.begin(), candidat.end(), [](object & o1, object & o2)
     {
-        if (std::abs(o1.origin.x - o2.origin.x) < 3)
-            return o1.origin.y < o2.origin.y;
         return o1.origin.x < o2.origin.x;
     });
     for (size_t j = 0, back2 = 0, sz = candidat.size(); sz && (j < sz - 1); ++j)
@@ -102,12 +96,13 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             for (size_t e = std::max(j + 1, back2); e < sz; ++e)//r placed correct, original code does r = 0 prior 2nd loop
             {
                 auto& ce = candidat.at(e);
-#ifndef DONT_JOIN_CANDIDATES
-                const bool jb = ce.isFullyOverlap(cj);
-#else
-                const bool jb = false;
-#endif
                 if (ce.active())
+                {
+#ifndef DONT_JOIN_CANDIDATES
+                    const bool jb = ce.isFullyOverlap(cj);
+#else
+                    const bool jb = false;
+#endif
                     if (cj.isCloseFrame(ce) && (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5 || jb))
                     {
                         cj.join(ce);
@@ -118,13 +113,11 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
                         j -= 1;
                         break;
                     }
+                }
             }
     }
-
-    for (auto& c : candidat)
-        c.deactivate();
-
-    cleanup(candidat);
+    age();
+    killOlds();
 }
 
 void objects::reserve(long framesCount)
@@ -132,9 +125,21 @@ void objects::reserve(long framesCount)
     candidat.reserve(framesCount);
 }
 
-objects::objects(long framesCount)
+objects::objects(long framesCount, fullbits_int_t obj_activeness):
+    obj_activeness(obj_activeness)
 {
     reserve(framesCount);
+}
+
+void objects::killOlds()
+{
+    cleanup(candidat);
+}
+
+void objects::age()
+{
+    for (auto& c : candidat)
+        c.deactivate();
 }
 
 es_param_t object::getScoreParams(fullbits_int_t rows, fullbits_int_t cols) const

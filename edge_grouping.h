@@ -49,8 +49,9 @@ void next(std::vector<T>& src)
 struct object
 {
 private:
-    fullbits_int_t activeness{40};
     fullbits_int_t video_frame_index; //video frame index I think
+    fullbits_int_t activeness;
+    fullbits_int_t initial_act;
     cv::Rect sourceBox{};
 public:
     cv::Point origin{};
@@ -58,8 +59,10 @@ public:
     cv::Point endpoint{};
 
     object() = delete;
-    object(const cv::Point& centre, const cv::Rect& boxe, fullbits_int_t video_frame_index):
-        video_frame_index(video_frame_index)
+    object(const cv::Point& centre, const cv::Rect& boxe, fullbits_int_t video_frame_index, fullbits_int_t activeness = 40):
+        video_frame_index(video_frame_index),
+        activeness(activeness),
+        initial_act(activeness)
     {
         update(centre, boxe);
     }
@@ -122,10 +125,24 @@ public:
     }
 
     struct es_param_t getScoreParams(fullbits_int_t rows, fullbits_int_t cols) const;
+    bool isTooSmall(fullbits_int_t minsize) const
+    {
+        return std::abs(origin.y - endpoint.y) < 15 || std::abs(origin.x - endpoint.x) < minsize;
+    }
+
+    void extraLife()
+    {
+        activeness += initial_act;
+    }
 };
 using obj_collection = std::vector<object>;
 class objects
 {
+private:
+    std::vector<cv::Rect> boxes;
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
+    fullbits_int_t obj_activeness;
 public:
     obj_collection candidat{};
 public:
@@ -134,8 +151,10 @@ public:
     void populateObjects(const cv::Mat &image, fullbits_int_t newindex);
     void reserve(long framesCount);
 
-    objects() = default;
-    objects(long framesCount);
+    objects() = delete;
+    objects(long framesCount, fullbits_int_t obj_activeness);
+    void killOlds(); //kill all too olds
+    void age(); //make each candidat older
 };
 
 #endif /* EDGE_GROUPING_H */

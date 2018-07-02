@@ -40,7 +40,6 @@ void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<flo
         {
             if (canny.at(c, r) == 255 && object_map.at(c, r) == 255)
             {
-
                 float omin = 1000;
                 fullbits_int_t cs = 0, rs = 0;
                 bool neib = false;
@@ -106,8 +105,8 @@ void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<flo
             {
                 meanX [index] += c;
                 meanY [index] += r;
-                meanOX[index] += cos(2 * dir1.at(c, r));
-                meanOY[index] += sin(2 * dir1.at(c, r));
+                meanOX[index] += std::cos(2 * dir1.at(c, r));
+                meanOY[index] += std::sin(2 * dir1.at(c, r));
                 meanNB[index] += 1;
             }
         }
@@ -177,7 +176,7 @@ void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<flo
 
     for (fullbits_int_t i = 0; i < segcount; ++i)
     {
-        const auto angle = std::abs<float>(sin(meanO[i]));
+        const auto angle = std::abs<float>(std::sin(meanO[i]));
 
         if (std::abs<float>(angle - 1) < 0.5)
         {
