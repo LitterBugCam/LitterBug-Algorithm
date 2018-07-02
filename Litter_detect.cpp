@@ -162,8 +162,9 @@ int main(int argc, char * argv[])
     cv::Mat not_used;
     for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
     {
+#ifndef NO_FPS
         auto t = static_cast<double>(getTickCount());
-
+#endif
         if (i > frameinit) alpha_S = alpha;
         if (i % framemod != 0 && i > frameinit)
             continue;
@@ -268,9 +269,6 @@ int main(int argc, char * argv[])
             }
 
             threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
-
-            double t2 = ((double) getTickCount() - t) / getTickFrequency();
-            meanfps_static = meanfps_static + (1 / t2);
             abandoned_objects.populateObjects(frame, i);
 
             cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
@@ -295,7 +293,12 @@ int main(int argc, char * argv[])
             }
 
             //std::cout << "Objects count: " << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
-            std::string text = "FPS: " + std::to_string(meanfps / (i + 1)) + ", candidats count: " + std::to_string(abandoned_objects.candidat.size());
+#ifndef NO_GUI
+#ifndef NO_FPS
+            const std::string text = "FPS: " + std::to_string(meanfps / (i + 1)) + ", candidats count: " + std::to_string(abandoned_objects.candidat.size());
+#else
+            const std::string text = "Candidats count: " + std::to_string(abandoned_objects.candidat.size());
+#endif
             cv::putText(image,
                         text,
                         cv::Point(5, 20), // Coordinates
@@ -307,14 +310,14 @@ int main(int argc, char * argv[])
 
             imshow("output", image);//ok,those 2 take around -5 fps on i7
             waitKey(10);
+#endif
         }
         t = ((double) getTickCount() - t) / getTickFrequency();
         meanfps =  (1 / t) + meanfps;
-        //        if (i % 50 == 0 )
-        //            std::cout << "FPS  " << meanfps / (i + 1) << ", Objects: " << abandoned_objects.candidat.size() << std::endl;
+#ifndef NO_FPS
+        if (i % 50 == 0 )
+            std::cerr << "FPS  " << meanfps / (i + 1) << ", Objects: " << abandoned_objects.candidat.size() << std::endl;
+#endif
     }
-    //std::cout << "mean FPS  " << meanfps / i << std::endl;
-    //std::cout << "mean FPS region  " << meanfps_static / i  << std::endl;
-
     return 0;
 }
