@@ -51,7 +51,7 @@ struct object
 private:
     fullbits_int_t activeness{40};
     fullbits_int_t video_frame_index; //video frame index I think
-
+    cv::Rect sourceBox{};
 public:
     cv::Point origin{};
     cv::Point centre{};
@@ -77,6 +77,7 @@ public:
     void update(const cv::Point& centre, const cv::Rect& boxe)
     {
         this->centre = centre;
+        sourceBox = boxe;
         origin.x = boxe.x;
         origin.y = boxe.y;
         endpoint.x = boxe.x + boxe.width;
@@ -85,16 +86,9 @@ public:
 
     void join(const object& src)
     {
-        auto boxe = cv::Rect(origin, endpoint) | cv::Rect(src.origin, src.endpoint);
         cv::Point centre((origin.x + src.origin.x) / 2, (origin.y + src.origin.y) / 2);
-        update(centre, boxe);
+        update(centre, sourceBox | src.sourceBox);
         activeness = std::max(activeness, src.activeness) + 1;
-        //fixme: hmm not sure here ...maybe should take only witdth wout x here: endpoint.x = boxe.x + boxe.width;
-        //        this->centre = centre;
-        //        origin.x   = boxe.x;
-        //        origin.y   = boxe.y;
-        //        endpoint.x = boxe.width;
-        //        endpoint.y = boxe.height;
     }
 
     bool isFullyOverlap(const object& src) const
