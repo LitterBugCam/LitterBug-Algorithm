@@ -142,7 +142,14 @@ int main(int argc, char * argv[])
 
     objects abandoned_objects(framesCount);
     cv::Mat B_Sx, B_Sy;
-
+    cv::Mat grad_x, grad_y;
+    cv::Mat gray;
+    cv::Mat D_Sx, D_Sy;
+    cv::Mat frame;
+    ZeroedArray<uint8_t> canny(0);
+    ZeroedArray<uint8_t> object_map(0);
+    ZeroedArray<float> angles(0);
+    cv::Mat not_used;
     for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
     {
         auto t = static_cast<double>(getTickCount());
@@ -155,19 +162,13 @@ int main(int argc, char * argv[])
             resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
 
 
-
-        //  cout << "frame " << i << endl;
-        cv::Mat F_Sx = zeroMatrix8U;
-        cv::Mat F_Sy = zeroMatrix8U;
-
-        cv::Mat gray;
         cv::cvtColor(image, gray, CV_BGR2GRAY);
         cv::blur(gray, gray, Size(3, 3));
 
         if (low_light)
             gray = gray * 1.5;
 
-        cv::Mat grad_x, grad_y;
+
         cv::Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
         cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
@@ -182,11 +183,10 @@ int main(int argc, char * argv[])
         }
         else
         {
-            cv::Mat D_Sx = grad_x - B_Sx;
+            D_Sx = grad_x - B_Sx;
             B_Sx = B_Sx + alpha_S * D_Sx;
 
-
-            cv::Mat D_Sy = grad_y - B_Sy;
+            D_Sy = grad_y - B_Sy;
             B_Sy = B_Sy + alpha_S * D_Sy;
 
             if (i % framemod2 == 0)
@@ -199,17 +199,14 @@ int main(int argc, char * argv[])
                 if (i > frameinit)
                 {
                     assert(abandoned_map.isContinuous());
-                    assert(F_Sx.isContinuous());
-                    assert(F_Sy.isContinuous());
                     assert(grad_x.isContinuous());
                     assert(grad_y.isContinuous());
                     assert(D_Sx.isContinuous());
                     assert(D_Sy.isContinuous());
 
+
                     //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
                     auto abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
-                    auto F_Sx_ptr = F_Sx.ptr<uchar>(1, 1);
-                    auto F_Sy_ptr = F_Sy.ptr<uchar>(1, 1);
                     auto grad_x_ptr = grad_x.ptr<float>(1, 1);
                     auto grad_y_ptr = grad_y.ptr<float>(1, 1);
                     auto D_Sx_ptr = D_Sx.ptr<float>(1, 1);
@@ -221,15 +218,10 @@ int main(int argc, char * argv[])
                         {
                             auto *point = abandoned_map_ptr + k;
 
-                            if (std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20)
-                                *(F_Sx_ptr + k) = 255;
-
-                            if (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20)
-                                *(F_Sy_ptr + k) = 255;
-
                             //prevening overflow here
                             //btw original code COULD overflow on whites...
-                            if (*(F_Sx_ptr + k) == 255 || *(F_Sy_ptr + k) == 255)
+                            if ((std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20) ||
+                                    (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20))
                                 *point = static_cast<std::remove_pointer<decltype(point)>::type>(std::min(2 + *point, static_cast<int>(255)));
 
 
@@ -254,11 +246,8 @@ int main(int argc, char * argv[])
                                         break;
                                     }
                                 }
-
                         }
 
-                        F_Sy_ptr          += image.cols;
-                        F_Sx_ptr          += image.cols;
                         grad_x_ptr        += image.cols;
                         grad_y_ptr        += image.cols;
                         D_Sx_ptr          += image.cols;
@@ -267,24 +256,16 @@ int main(int argc, char * argv[])
                     }
                 }
             }
-            cv::Mat frame     = zeroMatrix8U;
+
             threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
 
             double t2 = ((double) getTickCount() - t) / getTickFrequency();
             meanfps_static = meanfps_static + (1 / t2);
             abandoned_objects.populateObjects(frame, i);
-            ZeroedArray<uint8_t> canny(0);
+
             cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
-
-
-            ZeroedArray<uint8_t> object_map(image.size());
             threshold(abandoned_map, object_map.getStorage(), aotime2, 255, THRESH_BINARY);
-
-            ZeroedArray<float> angles(0);
-            {
-                cv::Mat not_used; //by doing {} showing compiler we dont need that, so it will take care
-                cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
-            }
+            cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
 
             for (auto& atu : abandoned_objects.candidat)
             {

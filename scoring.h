@@ -72,6 +72,11 @@ public:
 
         return storage[key];
     }
+
+    void clear()
+    {
+        storage.clear();
+    }
 };
 
 //this will keep for experiments, so can just change between ZeroedMapArray / ZeroedArray in declaration only
@@ -108,6 +113,11 @@ public:
     cv::Mat& getStorage()
     {
         return storage;
+    }
+
+    void clear()
+    {
+        storage *= 0;
     }
 };
 

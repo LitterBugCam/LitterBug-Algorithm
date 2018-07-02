@@ -33,7 +33,6 @@ void edge_segments(const ZeroedArray<uint8_t> &object_map, const ZeroedArray<flo
     ZeroedArray<short> segmap(mwh);
     ZeroedMapArray<float> dirsum;
 
-
     using namespace cv;
     decltype(segmap)::value_type segcount = 1;
     for (fullbits_int_t r = rr; r < h; ++r)

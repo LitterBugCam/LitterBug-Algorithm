@@ -32,9 +32,14 @@ cv::Point::value_type objects::minDistance(const cv::Point& p1, const cv::Point&
 
 void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
 {
-    std::vector<cv::Rect> boxes;
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Vec4i> hierarchy;
+    static std::vector<cv::Rect> boxes;
+    static std::vector<std::vector<cv::Point>> contours;
+    static std::vector<cv::Vec4i> hierarchy;
+
+    boxes.clear();
+    contours.clear();
+    hierarchy.clear();
+
     cv::findContours(image, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 
     //making surrounding boxes to calculated contours
