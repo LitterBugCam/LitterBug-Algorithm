@@ -100,7 +100,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
     {
         auto& cj = candidat.at(j);
         if (cj.active())
-            for (size_t e = std::max(j + 1, back2), r = 0; e < sz; ++e, ++r)//r placed correct, original code does r = 0 prior 2nd loop
+            for (size_t e = std::max(j + 1, back2); e < sz; ++e)//r placed correct, original code does r = 0 prior 2nd loop
             {
                 auto& ce = candidat.at(e);
                 if (ce.active())
