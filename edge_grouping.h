@@ -94,11 +94,9 @@ public:
     bool isFullyOverlap(const object& src) const
     {
         //checks if this contais src or src contains this completely
-        const cv::Rect r1(origin, endpoint);
-        const cv::Rect r2(src.origin, src.endpoint);
-        const auto ir = r1 & r2;
+        const auto ir = sourceBox & src.sourceBox;
         const auto ar = ir.area();
-        return ar > r1.area() * 0.9 || ar > r2.area() * 0.9;
+        return ar > sourceBox.area() * 0.9 || ar > src.sourceBox.area() * 0.9;
     }
 
     bool active() const
