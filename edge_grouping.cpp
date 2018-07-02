@@ -104,7 +104,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             {
                 auto& ce = candidat.at(e);
                 if (ce.active())
-                    if (cj.isCloseFrame(ce) && (cj.isFullyOverlap(ce) ||  minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5))
+                    if (cj.isCloseFrame(ce) && (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5 || cj.isFullyOverlap(ce)))
                     {
                         cj.join(ce);
                         ce.kill();
