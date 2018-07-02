@@ -146,7 +146,7 @@ int main(int argc, char * argv[])
 
     //2nd param shows how long object should live initially (it was 40 by default)
     //however, lets say 1 second of real time video
-    objects abandoned_objects(framesCount, fps);
+    objects abandoned_objects(framesCount, fps * std::max(fps_life, 0.01f));
 
     cv::Mat B_Sx, B_Sy;
     cv::Mat grad_x, grad_y;
