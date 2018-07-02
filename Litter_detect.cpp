@@ -98,8 +98,10 @@ int main(int argc, char * argv[])
                 std::cerr << "Unknown parameter line: " << tmp << std::endl;
         }
     }
+
     if (std::abs(fps_life) < 0.00001f)
         fps_life = 40. / 25.; //thats is default test value for my test video
+
     if (aotime <= aotime2)
     {
         std::cerr << "aotime must be greater then aotime2" << std::endl;
