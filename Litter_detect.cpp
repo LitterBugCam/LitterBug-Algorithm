@@ -1,9 +1,12 @@
 #include "edge_grouping.h"
 #include "scoring.h"
 #include "parameters.h"
-#include <omp.h>
 #include <map>
 #include <functional>
+
+#ifndef NO_GUI
+    #include <opencv/highgui.h>
+#endif
 
 //fixme: all those DECLARE_PARAM can be rewritten using C++17 and std::variant
 //see here: https://habr.com/post/415737/

@@ -5,10 +5,8 @@
 #include<opencv2/opencv.hpp>
 #include<vector>
 #include<cstring>
-#include "opencv2/highgui/highgui.hpp"
 #include <iostream>
 #include <opencv/cv.h>
-#include <opencv/highgui.h>
 #include <cmath>
 #include <algorithm>
 
