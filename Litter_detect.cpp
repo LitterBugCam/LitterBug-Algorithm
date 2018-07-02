@@ -189,84 +189,82 @@ int main(int argc, char * argv[])
             cv::Mat D_Sy = grad_y - B_Sy;
             B_Sy = B_Sy + alpha_S * D_Sy;
 
-
-            assert(abandoned_map.isContinuous());
-            assert(F_Sx.isContinuous());
-            assert(F_Sy.isContinuous());
-            assert(grad_x.isContinuous());
-            assert(grad_y.isContinuous());
-            assert(D_Sx.isContinuous());
-            assert(D_Sy.isContinuous());
-
-
             if (i % framemod2 == 0)
             {
                 auto plain_map_ptr = abandoned_map.ptr<uchar>();
                 for (size_t i = 0, sz = image.rows * image.cols; i < sz; ++i)
                     if (*(plain_map_ptr + i)) //overflow prot
                         *(plain_map_ptr + i) -= 1;
-            }
 
-            if (i > frameinit && i % framemod2 == 0)
-            {
-                //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
-                auto abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
-                auto F_Sx_ptr = F_Sx.ptr<uchar>(1, 1);
-                auto F_Sy_ptr = F_Sy.ptr<uchar>(1, 1);
-                auto grad_x_ptr = grad_x.ptr<float>(1, 1);
-                auto grad_y_ptr = grad_y.ptr<float>(1, 1);
-                auto D_Sx_ptr = D_Sx.ptr<float>(1, 1);
-                auto D_Sy_ptr = D_Sy.ptr<float>(1, 1);
-
-                for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
+                if (i > frameinit)
                 {
-                    for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
+                    assert(abandoned_map.isContinuous());
+                    assert(F_Sx.isContinuous());
+                    assert(F_Sy.isContinuous());
+                    assert(grad_x.isContinuous());
+                    assert(grad_y.isContinuous());
+                    assert(D_Sx.isContinuous());
+                    assert(D_Sy.isContinuous());
+
+                    //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
+                    auto abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
+                    auto F_Sx_ptr = F_Sx.ptr<uchar>(1, 1);
+                    auto F_Sy_ptr = F_Sy.ptr<uchar>(1, 1);
+                    auto grad_x_ptr = grad_x.ptr<float>(1, 1);
+                    auto grad_y_ptr = grad_y.ptr<float>(1, 1);
+                    auto D_Sx_ptr = D_Sx.ptr<float>(1, 1);
+                    auto D_Sy_ptr = D_Sy.ptr<float>(1, 1);
+
+                    for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
                     {
-                        auto *point = abandoned_map_ptr + k;
+                        for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
+                        {
+                            auto *point = abandoned_map_ptr + k;
 
-                        if (std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20)
-                            *(F_Sx_ptr + k) = 255;
+                            if (std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20)
+                                *(F_Sx_ptr + k) = 255;
 
-                        if (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20)
-                            *(F_Sy_ptr + k) = 255;
+                            if (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20)
+                                *(F_Sy_ptr + k) = 255;
 
-                        //prevening overflow here
-                        //btw original code COULD overflow on whites...
-                        if (*(F_Sx_ptr + k) == 255 || *(F_Sy_ptr + k) == 255)
-                            *point = static_cast<std::remove_pointer<decltype(point)>::type>(std::min(2 + *point, static_cast<int>(255)));
+                            //prevening overflow here
+                            //btw original code COULD overflow on whites...
+                            if (*(F_Sx_ptr + k) == 255 || *(F_Sy_ptr + k) == 255)
+                                *point = static_cast<std::remove_pointer<decltype(point)>::type>(std::min(2 + *point, static_cast<int>(255)));
 
 
-                        if (*point > aotime2 && *point < aotime)
-                            for (fullbits_int_t c0 = -1; c0 <= 1; ++c0)
-                            {
-                                if (c0 && *(point + c0) > aotime) //excluding c0 = 0 which is meself
+                            if (*point > aotime2 && *point < aotime)
+                                for (fullbits_int_t c0 = -1; c0 <= 1; ++c0)
                                 {
-                                    *point = aotime;
-                                    break;
+                                    if (c0 && *(point + c0) > aotime) //excluding c0 = 0 which is meself
+                                    {
+                                        *point = aotime;
+                                        break;
+                                    }
+
+                                    if (*(point + image.cols + c0) > aotime )
+                                    {
+                                        *point = aotime;
+                                        break;
+                                    }
+
+                                    if (*(point - image.cols + c0) > aotime )
+                                    {
+                                        *point = aotime;
+                                        break;
+                                    }
                                 }
 
-                                if (*(point + image.cols + c0) > aotime )
-                                {
-                                    *point = aotime;
-                                    break;
-                                }
+                        }
 
-                                if (*(point - image.cols + c0) > aotime )
-                                {
-                                    *point = aotime;
-                                    break;
-                                }
-                            }
-
+                        F_Sy_ptr          += image.cols;
+                        F_Sx_ptr          += image.cols;
+                        grad_x_ptr        += image.cols;
+                        grad_y_ptr        += image.cols;
+                        D_Sx_ptr          += image.cols;
+                        D_Sy_ptr          += image.cols;
+                        abandoned_map_ptr += image.cols;
                     }
-
-                    F_Sy_ptr          += image.cols;
-                    F_Sx_ptr          += image.cols;
-                    grad_x_ptr        += image.cols;
-                    grad_y_ptr        += image.cols;
-                    D_Sx_ptr          += image.cols;
-                    D_Sy_ptr          += image.cols;
-                    abandoned_map_ptr += image.cols;
                 }
             }
             cv::Mat frame     = zeroMatrix8U;
