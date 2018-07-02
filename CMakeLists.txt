@@ -3,7 +3,7 @@ project(litter_bug)
 set(CMAKE_CXX_STANDARD 11)
 set(NO_GUI "-DNO_GUI")
 
-set (CMAKE_CXX_FLAGS "${NO_GUI} ${CMAKE_CXX_FLAGS} -std=c++11 -Wall ")
+set (CMAKE_CXX_FLAGS "${NO_GUI} ${CMAKE_CXX_FLAGS} -std=c++11 -Wall -O3 -march=native")
 
 find_package (OpenCV REQUIRED )
 
