@@ -97,8 +97,13 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             for (size_t e = std::max(j + 1, back2); e < sz; ++e)//r placed correct, original code does r = 0 prior 2nd loop
             {
                 auto& ce = candidat.at(e);
+#ifndef DONT_JOIN_CANDIDATES
+                const bool jb = ce.isFullyOverlap(cj);
+#else
+                const bool jb = false;
+#endif
                 if (ce.active())
-                    if (cj.isCloseFrame(ce) && (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5))
+                    if (cj.isCloseFrame(ce) && (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5 || jb))
                     {
                         cj.join(ce);
                         ce.kill();
