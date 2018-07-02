@@ -218,21 +218,18 @@ int main(int argc, char * argv[])
             auto* D_Sy_ptr = D_Sy.ptr<float>(1, 1);
 
 
-            for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
-            {
-                for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
+            if (i > frameinit && i % framemod2 == 0)
+                for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
                 {
-                    auto *point = abandoned_map_ptr + k;
-
-                    if (std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20)
-                        *(F_Sx_ptr + k) = 255;
-
-                    if (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20)
-                        *(F_Sy_ptr + k) = 255;
-
-                    if (i > frameinit && i % framemod2 == 0)
+                    for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
                     {
+                        auto *point = abandoned_map_ptr + k;
 
+                        if (std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20)
+                            *(F_Sx_ptr + k) = 255;
+
+                        if (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20)
+                            *(F_Sy_ptr + k) = 255;
 
                         //prevening overflow here
                         //btw original code COULD overflow on whites...
@@ -261,17 +258,17 @@ int main(int argc, char * argv[])
                                     break;
                                 }
                             }
-                    }
-                }
 
-                F_Sy_ptr          += image.cols;
-                F_Sx_ptr          += image.cols;
-                grad_x_ptr        += image.cols;
-                grad_y_ptr        += image.cols;
-                D_Sx_ptr          += image.cols;
-                D_Sy_ptr          += image.cols;
-                abandoned_map_ptr += image.cols;
-            }
+                    }
+
+                    F_Sy_ptr          += image.cols;
+                    F_Sx_ptr          += image.cols;
+                    grad_x_ptr        += image.cols;
+                    grad_y_ptr        += image.cols;
+                    D_Sx_ptr          += image.cols;
+                    D_Sy_ptr          += image.cols;
+                    abandoned_map_ptr += image.cols;
+                }
             cv::Mat frame     = zeroMatrix8U;
             threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
 
