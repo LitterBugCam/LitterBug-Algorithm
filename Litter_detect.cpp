@@ -286,13 +286,13 @@ int main(int argc, char * argv[])
                         //hm, lets do cheat, if we display object then +1 to life
                         atu.extraLife();
                         results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
+#ifndef NO_GUI
                         const static Scalar color(0, 0, 255);
                         rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
+#endif
                     }
                 }
             }
-
-            //std::cout << "Objects count: " << ", candidate=" << abandoned_objects.candidat.size() << std::endl;
 #ifndef NO_GUI
 #ifndef NO_FPS
             const std::string text = "FPS: " + std::to_string(meanfps / (i + 1)) + ", candidats count: " + std::to_string(abandoned_objects.candidat.size());
