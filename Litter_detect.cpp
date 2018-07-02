@@ -119,6 +119,7 @@ int main(int argc, char * argv[])
 
     cv::Mat abandoned_map = zeroMatrix8U;
 
+
     const static double alpha_init = 0.01;
     double alpha_S = alpha_init;
 
@@ -126,6 +127,8 @@ int main(int argc, char * argv[])
     cv::Mat B_Sx, B_Sy;
     for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
     {
+        auto t = static_cast<double>(getTickCount());
+
         if (i > frameinit) alpha_S = alpha;
         if (i % framemod != 0 && i > frameinit)
             continue;
@@ -133,7 +136,7 @@ int main(int argc, char * argv[])
         if (resize_scale != 1)
             resize(image, image, Size(image.cols * resize_scale, image.rows * resize_scale));
 
-        auto t = static_cast<double>(getTickCount());
+
 
         //  cout << "frame " << i << endl;
         cv::Mat F_Sx = zeroMatrix8U;
@@ -174,6 +177,13 @@ int main(int argc, char * argv[])
                 abandoned_map -= 1;
 
 
+            assert(abandoned_map.isContinuous());
+            assert(F_Sx.isContinuous());
+            assert(F_Sy.isContinuous());
+            assert(grad_x.isContinuous());
+            assert(grad_y.isContinuous());
+            assert(D_Sx.isContinuous());
+            assert(D_Sy.isContinuous());
 
             for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
             {
