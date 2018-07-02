@@ -44,32 +44,25 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
         {
             const auto& c = contours.at(idx);
             if (cv::arcLength(c, false) > 20)
-                boxes.push_back(cv::boundingRect(c));
-        }
-    }
-
-    //if 2 boxes overlap more then 60% of 1 of the boxes - then join it
-
-    for (size_t i = 0, back2 = 0, sz = boxes.size(); sz && i < sz - 1; ++i)
-    {
-        auto& b1 = boxes.at(i);
-        for (size_t j = std::max(i + 1, back2); j < sz; ++j)
-        {
-            back2 = 0;
-            const auto& b2 = boxes.at(j);
-            const auto aj = (b1 & b2).area();
-            if ( aj > 0.6 * b1.area() || aj > 0.6 * b2.area())
             {
-                b1 = b1 | b2;
-                sz -= 1;
-                boxes.erase(boxes.begin() + j);
-                i -= 1;
-                back2 = j - 1;
-                break;
+                const auto newBox = cv::boundingRect(c);
+#ifndef DONT_JOIN_BOXES
+                //if 2 boxes overlap more then koef% of 1 of the boxes - then join it
+                const static float koef = 0.9f;
+                const auto newArea = newBox.area() * koef;
+                auto f = ALG_NS::find_if(boxes.begin(), boxes.end(), [&newArea, &newBox](cv::Rect & r)
+                {
+                    const auto aj = (newBox & r).area();
+                    return (aj > newArea || aj > newBox.area() * koef);
+                });
+                if (f != boxes.end())
+                    *f = *f | newBox;
+                else
+#endif
+                    boxes.push_back(newBox);
             }
         }
     }
-
 
     for (const auto & boxe : boxes)
     {
@@ -105,7 +98,7 @@ void objects::populateObjects(const cv::Mat &image, fullbits_int_t newindex)
             {
                 auto& ce = candidat.at(e);
                 if (ce.active())
-                    if (cj.isCloseFrame(ce) && (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5 || cj.isFullyOverlap(ce)))
+                    if (cj.isCloseFrame(ce) && (minDistance(cj.origin, cj.endpoint, ce.origin, ce.endpoint) < 5))
                     {
                         cj.join(ce);
                         ce.kill();
