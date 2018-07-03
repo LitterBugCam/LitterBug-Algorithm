@@ -10,4 +10,4 @@ framemod = 1
 framemod2 = 5
 minsize= 30
 resize_scale= 1 
-fps_life = 0.5
+fps_life = 1.6

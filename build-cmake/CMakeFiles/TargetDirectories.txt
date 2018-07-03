@@ -1,0 +1,3 @@
+/home/alex/Work/OpenSource/LitterBug-Algorithm/build-cmake/CMakeFiles/rebuild_cache.dir
+/home/alex/Work/OpenSource/LitterBug-Algorithm/build-cmake/CMakeFiles/litter_bug_nogui.dir
+/home/alex/Work/OpenSource/LitterBug-Algorithm/build-cmake/CMakeFiles/edit_cache.dir
