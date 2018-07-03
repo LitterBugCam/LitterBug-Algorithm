@@ -112,18 +112,15 @@ int main(int argc, char * argv[])
 
 
 
-    char * videopath = nullptr;
+    const char * videopath = (argc < 2) ? nullptr : argv[1];
 
 
-    if (argc < 2)
+    if (!videopath)
     {
         std::cout << "please specify the video path" << std::endl;
         exit(1);
     }
-    else
-        videopath = argv[1];
-
-
+    std::cout << "Video file: " << videopath << std::endl;
     cv::VideoCapture capture(videopath);
     const auto framesCount = static_cast<long>(capture.get(CV_CAP_PROP_FRAME_COUNT));
     const auto fps         = std::max(1l, static_cast<long>(capture.get(CV_CAP_PROP_FPS)));
