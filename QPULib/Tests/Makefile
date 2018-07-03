@@ -3,7 +3,7 @@ ROOT = ../Lib
 
 # Compiler and default flags
 CXX = g++
-CXX_FLAGS = -Wconversion -std=c++0x -I $(ROOT)
+CXX_FLAGS = -fpermissive -Wconversion -std=c++0x -I $(ROOT)
 
 # Object directory
 OBJ_DIR = obj
@@ -65,6 +65,10 @@ clean:
 	rm -f HeatMap
 
 LIB = $(patsubst %,$(OBJ_DIR)/%,$(OBJ))
+
+libqpu.a: $(LIB)
+	@echo Linking...
+	ar rcs $@ $^
 
 Hello: Hello.o $(LIB)
 	@echo Linking...

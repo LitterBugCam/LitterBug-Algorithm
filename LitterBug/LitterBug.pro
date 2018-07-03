@@ -17,7 +17,7 @@ HEADERS += \
 
 LIBS += -lopencv_core -lopencv_videoio -lopencv_imgproc -lopencv_highgui
 
-QMAKE_CXXFLAGS +=  -Wall -fopenmp -Wctor-dtor-privacy -Werror=delete-non-virtual-dtor -fstrict-aliasing
+QMAKE_CXXFLAGS +=  -Wctor-dtor-privacy -Werror=delete-non-virtual-dtor -fstrict-aliasing
 QMAKE_CXXFLAGS +=  -Werror=strict-aliasing -Wstrict-aliasing=2
 
 
@@ -26,6 +26,7 @@ CONFIG(debug, debug|release) {
      #lets optimize for CPU on debug, for release - packager should do
      QMAKE_CXXFLAGS +=  -march=native -O0 -g
      DEFINES += _DEBUG
+     DEFINES += DEBUG
      unix:!maxc:QMAKE_CXXFLAGS += -fsanitize=undefined -fsanitize=vptr
      unix:!maxc:LIBS += -lubsan
 }

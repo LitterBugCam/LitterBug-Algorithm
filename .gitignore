@@ -5,6 +5,6 @@ build-LitterBug-Arch-Release/
 .git/
 **/*.o
 **/*.obj
-
+**/*.a
 
 
