@@ -68,7 +68,7 @@ LIB = $(patsubst %,$(OBJ_DIR)/%,$(OBJ))
 
 libqpu.a: $(LIB)
 	@echo Linking...
-	ar rcs $@ $^
+	ar rcsf $@ $^
 
 Hello: Hello.o $(LIB)
 	@echo Linking...

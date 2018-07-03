@@ -1,2 +1,5 @@
 INCLUDEPATH += $$PWD/../QPULib/Lib
-LIBS += -L$$PWD/../QPULib/Tests/libqpu.a
+LIBS+=-L$$PWD/../QPULib/Tests
+LIBS+= -lqpu
+QMAKE_CXXFLAGS += -fpermissive
+DEFINES += EMULATION_MODE
