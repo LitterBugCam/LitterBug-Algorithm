@@ -325,8 +325,11 @@ int main(int argc, char * argv[])
 #ifndef NO_FPS
         t = ((double) getTickCount() - t) / getTickFrequency();
         meanfps =  (1 / t) + meanfps;
+        //print out only with no gui
+#ifdef NO_GUI
         if (i % 50 == 0 )
             std::cerr << "FPS  " << meanfps / (i + 1) << ", Objects: " << abandoned_objects.candidat.size() << std::endl;
+#endif
 #endif
     }
     return 0;
