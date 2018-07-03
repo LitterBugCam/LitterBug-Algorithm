@@ -37,6 +37,8 @@ else {
     QMAKE_CXXFLAGS_RELEASE = -O3 -march=native
 }
 
+include($$PWD/qpulib.pri)
+
 openmp {
 message( "Building using OpenMP" )
 DEFINES *= USING_OPENMP
