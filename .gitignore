@@ -1,6 +1,8 @@
 build-LitterBug-Arch-Debug/
 build-LitterBug-Arch-Profile/
 build-LitterBug-Arch-Release/
+.git/*
+.git/
 **/*.o
 **/*.obj
 

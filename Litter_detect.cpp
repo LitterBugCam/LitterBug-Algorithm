@@ -208,40 +208,45 @@ int main(int argc, char * argv[])
 
             if (i % framemod2 == 0)
             {
-                auto plain_map_ptr = abandoned_map.ptr<uchar>();
-                for (size_t i = 0, sz = image.rows * image.cols; i < sz; ++i)
-                    if (*(plain_map_ptr + i)) //overflow prot
-                        *(plain_map_ptr + i) -= 1;
+                assert(abandoned_map.isContinuous());
+                assert(grad_x.isContinuous());
+                assert(grad_y.isContinuous());
+                assert(D_Sx.isContinuous());
+                assert(D_Sy.isContinuous());
 
+                auto plain_map_ptr = abandoned_map.ptr<uchar>();
+                auto grad_x_ptr = grad_x.ptr<float>();
+                auto grad_y_ptr = grad_y.ptr<float>();
+                auto D_Sx_ptr = D_Sx.ptr<float>();
+                auto D_Sy_ptr = D_Sy.ptr<float>();
+
+                for (size_t k = 0, sz = image.rows * image.cols; k < sz; ++k)
+                {
+                    auto point = plain_map_ptr + k;
+                    if (*point) //overflow prot
+                        *point -= 1;
+
+                    //prevening overflow here
+                    //btw original code COULD overflow on whites...
+                    if ((std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) > 19) ||
+                            (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) > 19))
+                    {
+                        if (*point < 254)
+                            *point += 2;
+                        else
+                            *point = 255;
+                    }
+                }
                 if (i > frameinit)
                 {
-                    assert(abandoned_map.isContinuous());
-                    assert(grad_x.isContinuous());
-                    assert(grad_y.isContinuous());
-                    assert(D_Sx.isContinuous());
-                    assert(D_Sy.isContinuous());
-
-
-                    //pointers to the [1st] pixel in the row (0th will be used later in loops as -1)
-                    auto abandoned_map_ptr = abandoned_map.ptr<uchar>(1, 1);
-                    auto grad_x_ptr = grad_x.ptr<float>(1, 1);
-                    auto grad_y_ptr = grad_y.ptr<float>(1, 1);
-                    auto D_Sx_ptr = D_Sx.ptr<float>(1, 1);
-                    auto D_Sy_ptr = D_Sy.ptr<float>(1, 1);
-
                     for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
                     {
+                        plain_map_ptr += image.cols;
                         for (fullbits_int_t k = 1; k < image.cols - 1; ++k)
                         {
-                            auto *point = abandoned_map_ptr + k;
+                            auto point = plain_map_ptr + k;
 
-                            //prevening overflow here
-                            //btw original code COULD overflow on whites...
-                            if ((std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) >= 20) ||
-                                    (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) >= 20))
-                                *point = static_cast<std::remove_pointer<decltype(point)>::type>(std::min(2 + *point, static_cast<int>(255)));
-
-
+                            //hmm, this code can be removed for test image - same result
                             if (*point > aotime2 && *point < aotime)
                                 for (fullbits_int_t c0 = -1; c0 <= 1; ++c0)
                                 {
@@ -264,12 +269,6 @@ int main(int argc, char * argv[])
                                     }
                                 }
                         }
-
-                        grad_x_ptr        += image.cols;
-                        grad_y_ptr        += image.cols;
-                        D_Sx_ptr          += image.cols;
-                        D_Sy_ptr          += image.cols;
-                        abandoned_map_ptr += image.cols;
                     }
                 }
             }

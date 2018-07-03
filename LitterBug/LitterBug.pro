@@ -2,6 +2,7 @@ TEMPLATE = app
 CONFIG += c++11
 CONFIG -= app_bundle
 CONFIG -= qt
+#CONFIG += openmp
 
 SOURCES += \
     ../edge_grouping.cpp \
@@ -16,7 +17,7 @@ HEADERS += \
 
 LIBS += -lopencv_core -lopencv_videoio -lopencv_imgproc -lopencv_highgui
 
-QMAKE_CXXFLAGS +=  -Wall -Wctor-dtor-privacy -Werror=delete-non-virtual-dtor -fstrict-aliasing
+QMAKE_CXXFLAGS +=  -Wall -fopenmp -Wctor-dtor-privacy -Werror=delete-non-virtual-dtor -fstrict-aliasing
 QMAKE_CXXFLAGS +=  -Werror=strict-aliasing -Wstrict-aliasing=2
 
 
@@ -34,4 +35,13 @@ else {
     #delegated to packager - didn't work easy, let it be here
     #QMAKE_CXXFLAGS += -O3 -march=native
     QMAKE_CXXFLAGS_RELEASE = -O3 -march=native
+}
+
+openmp {
+message( "Building using OpenMP" )
+DEFINES *= USING_OPENMP
+QMAKE_CXXFLAGS *= -fopenmp
+QMAKE_LFLAGS   *= -fopenmp
+#uncomment to try global parallels
+#DEFINES *= _GLIBCXX_PARALLEL
 }
