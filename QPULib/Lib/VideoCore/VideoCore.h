@@ -1,16 +1,12 @@
 #ifdef QPU_MODE
+    #pragma once
 
-#ifndef _VIDEOCORE_H_
-#define _VIDEOCORE_H_
+    // Globals
+    extern int mailbox;
+    extern int numQPUUsers;
 
-// Globals
-extern int mailbox;
-extern int numQPUUsers;
-
-// Operations
-int getMailbox();
-void enableQPUs();
-void disableQPUs();
-
-#endif
+    // Operations
+    int getMailbox();
+    void enableQPUs();
+    void disableQPUs();
 #endif

@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cassert>
+#include <cstdlib>
+
 extern "C" {
 #include "VideoCore/Mailbox.h"
 #include "VideoCore/VideoCore.h"
@@ -93,10 +95,6 @@ public:
 template <typename T> class SharedArray
 {
 private:
-    // Disallow assignment & copying
-    void operator=(SharedArray<T> a);
-    void operator=(SharedArray<T>& a);
-    SharedArray(const SharedArray<T>& a);
 
     uint32_t handle;
     void* arm_base;
@@ -104,6 +102,10 @@ private:
 
 public:
     uint32_t size;
+    // Disallow assignment & copying
+    void operator=(SharedArray<T> a) = delete;
+    void operator=(SharedArray<T>& a) = delete;
+    SharedArray(const SharedArray<T>& a) = delete;
 
     /* Allocate GPU memory and map it into ARM address space */
     void alloc(uint32_t n)
@@ -116,7 +118,7 @@ public:
         if (!handle)
         {
             fprintf(stderr, "Failed to allocate GPU memory.");
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
         size = n;
         gpu_base = (void*) mem_lock(mb, handle);
@@ -168,7 +170,7 @@ public:
     // Subscript
     inline T& operator[] (int i)
     {
-        uint32_t* base = (uint32_t*) arm_base;
+        auto base = (uint32_t*) arm_base;
         return (T&) base[i];
     }
 

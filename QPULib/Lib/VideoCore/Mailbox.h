@@ -26,8 +26,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _MAILBOX_H_
-#define _MAILBOX_H_
+#pragma once
 
 #include <linux/ioctl.h>
 
@@ -52,4 +51,3 @@ unsigned qpu_enable(int file_desc, unsigned enable);
 
 #define BUS_TO_PHYS(addr) (((addr)) & ~0xC0000000)
 
-#endif
