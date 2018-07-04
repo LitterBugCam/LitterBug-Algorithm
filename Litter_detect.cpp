@@ -58,7 +58,7 @@ const static std::map<std::string, std::function<void(const std::string& src)>> 
 #undef DECLARE_PARAM
 
 #ifdef USE_GPU
-#include <QPULib.h>
+#include "QPULib.h"
 
 //GPU cannot do division, so have to prepare values on CPU
 //Float t0 = (xOld < 1.0f) ? xOld : 1.0f / x;

@@ -7,5 +7,5 @@
 #include "Source/Cond.h"
 #include "Source/Stmt.h"
 #include "Kernel.h"
-
+#include "VideoCore/SharedArray.h"
 #endif
