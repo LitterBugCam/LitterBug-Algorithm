@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(NO_GUI "-DNO_GUI")
 set(USE_GPU "-DUSE_GPU")
 
-set (CMAKE_CXX_FLAGS "${USE_GPU} ${NO_GUI} ${CMAKE_CXX_FLAGS} -std=c++11 -Wall -O3 -march=native -mfpu=vfp -mfloat-abi=hard")
+set (CMAKE_CXX_FLAGS "${USE_GPU} ${NO_GUI} ${CMAKE_CXX_FLAGS} -fpermissive -std=c++11 -Wall -O3 -march=native -mfpu=vfp -mfloat-abi=hard")
 
 #opencv needs gtk2 and gtkglext and hdf5
 find_package (OpenCV REQUIRED )
