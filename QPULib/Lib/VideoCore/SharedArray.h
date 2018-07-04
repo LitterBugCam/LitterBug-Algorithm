@@ -4,9 +4,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <cassert>
+extern "C" {
 #include "VideoCore/Mailbox.h"
 #include "VideoCore/VideoCore.h"
-
+}
 #ifdef EMULATION_MODE
 
 // ============================================================================
