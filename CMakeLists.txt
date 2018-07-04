@@ -13,4 +13,5 @@ find_package (OpenCV REQUIRED )
 
 add_executable(litter_bug_nogui Litter_detect.cpp edge_grouping.cpp scoring.cpp)
 target_include_directories(litter_bug_nogui PUBLIC ${CMAKE_SOURCE_DIR}/QPULib/Lib)
+target_link_libraries( litter_bug_nogui ${OpenCV_LIBS})
 #target_link_libraries( litter_bug_nogui ${OpenCV_LIBS} ${CMAKE_SOURCE_DIR}/QPULib/Tests/libqpu.a)
