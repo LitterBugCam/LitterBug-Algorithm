@@ -183,7 +183,7 @@ int main(int argc, char * argv[])
 
 
 
-    cv::Mat image;
+    cv::UMat image;
     capture >> image;
     if (image.empty())
     {
@@ -200,8 +200,8 @@ int main(int argc, char * argv[])
     cv::Mat abandoned_map = zeroMatrix8U;
 
 
-    const static double alpha_init = 0.01;
-    double alpha_S = alpha_init;
+    const static float alpha_init = 0.01;
+    auto alpha_S = alpha_init;
 
     //2nd param shows how long object should live initially (it was 40 by default)
     //however, lets say 1 second of real time video
@@ -209,7 +209,7 @@ int main(int argc, char * argv[])
 
     cv::Mat B_Sx, B_Sy;
     cv::Mat grad_x, grad_y;
-    cv::Mat gray;
+    cv::UMat gray, tmp;
     cv::Mat D_Sx, D_Sy;
     cv::Mat frame;
     ZeroedArray<uint8_t> canny(0);
@@ -241,12 +241,13 @@ int main(int argc, char * argv[])
         cv::blur(gray, gray, Size(3, 3));
 
         if (low_light)
-            gray = gray * 1.5;
+            gray = gray.mul(1.5f);
 
 
-        cv::Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
-        cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
-
+        cv::Sobel(gray, tmp, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+        tmp.copyTo(grad_x);
+        cv::Sobel(gray, tmp, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+        tmp.copyTo(grad_y);
 
         if (i == 0)
         {
@@ -258,45 +259,71 @@ int main(int argc, char * argv[])
         }
         else
         {
+            //            cv::subtract(grad_x, B_Sx, D_Sx);
+            //            cv::add(D_Sx.mul(alpha_S), B_Sx, B_Sx);
+
+            //            cv::subtract(grad_y, B_Sy, D_Sy);
+            //            cv::add(D_Sy.mul(alpha_S), B_Sy, B_Sy);
+
             D_Sx = grad_x - B_Sx;
             B_Sx = B_Sx + alpha_S * D_Sx;
 
             D_Sy = grad_y - B_Sy;
             B_Sy = B_Sy + alpha_S * D_Sy;
 
-            assert(grad_x.isContinuous());
-            assert(grad_y.isContinuous());
-            auto grad_x_ptr = grad_x.ptr<float>();
-            auto grad_y_ptr = grad_y.ptr<float>();
+            //            assert(grad_x.isContinuous());
+            //            assert(grad_y.isContinuous());
+            //            auto grad_x_ptr = grad_x.ptr<float>();
+            //            auto grad_y_ptr = grad_y.ptr<float>();
 
             if (i % framemod2 == 0)
             {
                 assert(abandoned_map.isContinuous());
-
-                assert(D_Sx.isContinuous());
-                assert(D_Sy.isContinuous());
-
                 auto plain_map_ptr = abandoned_map.ptr<uchar>();
-                auto D_Sx_ptr = D_Sx.ptr<float>();
-                auto D_Sy_ptr = D_Sy.ptr<float>();
 
-                for (size_t k = 0; k < pixels_size; ++k)
-                {
-                    auto point = plain_map_ptr + k;
-                    if (*point) //overflow prot
-                        *point -= 1;
+                //                assert(D_Sx.isContinuous());
+                //                assert(D_Sy.isContinuous());
+                //                auto D_Sx_ptr = D_Sx.ptr<float>();
+                //                auto D_Sy_ptr = D_Sy.ptr<float>();
 
-                    //prevening overflow here
-                    //btw original code COULD overflow on whites...
-                    if ((std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) > 19) ||
-                            (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) > 19))
-                    {
-                        if (*point < 254)
-                            *point += 2;
-                        else
-                            *point = 255;
-                    }
-                }
+                //                for (size_t k = 0; k < pixels_size; ++k)
+                //                {
+                //                    auto point = plain_map_ptr + k;
+                //                    if (*point) //overflow prot
+                //                        *point -= 1;
+
+                //                    //prevening overflow here
+                //                    //btw original code COULD overflow on whites...
+                //                    if ((std::abs(*(D_Sx_ptr + k)) > fore_th && std::abs(*(grad_x_ptr + k)) > 19) ||
+                //                            (std::abs(*(D_Sy_ptr + k)) > fore_th && std::abs(*(grad_y_ptr + k)) > 19))
+                //                    {
+                //                        if (*point < 254)
+                //                            *point += 2;
+                //                        else
+                //                            *point = 255;
+                //                    }
+                //                }
+                D_Sx = cv::abs(D_Sx);
+                grad_x = cv::abs(grad_x);
+                D_Sy = cv::abs(D_Sy);
+                grad_y = cv::abs(grad_y);
+                cv::threshold(D_Sx, D_Sx, fore_th, 2, THRESH_BINARY);
+                cv::threshold(grad_x, grad_x, 19, 1, THRESH_BINARY);
+                cv::multiply(D_Sx, grad_x, D_Sx);
+
+                cv::threshold(D_Sy, D_Sy, fore_th, 2, THRESH_BINARY);
+                cv::threshold(grad_y, grad_y, 19, 1, THRESH_BINARY);
+                cv::multiply(D_Sy, grad_y, D_Sy);
+
+                cv::add(D_Sx, D_Sy, D_Sx);
+                cv::threshold(D_Sx, D_Sx, 1, 2, THRESH_BINARY);
+
+                UMat tmp2;
+                D_Sx.convertTo(tmp2, CV_8UC1);
+                cv::add(abandoned_map, -1, abandoned_map);
+                cv::add(abandoned_map, tmp2, abandoned_map);
+
+
                 if (i > frameinit)
                 {
                     for (fullbits_int_t j = 1; j < image.rows - 1; ++j)
@@ -336,7 +363,8 @@ int main(int argc, char * argv[])
             threshold(abandoned_map, frame, aotime, 255, THRESH_BINARY);
             abandoned_objects.populateObjects(frame, i);
 
-            cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
+            cv::Canny(gray, gray, 30, 30 * 3, 3);
+            gray.copyTo(canny.getStorage());
             threshold(abandoned_map, object_map.getStorage(), aotime2, 255, THRESH_BINARY);
 #ifdef USE_GPU
             SharedArray<float> yx(pixels_size_al);
@@ -346,7 +374,7 @@ int main(int argc, char * argv[])
             {
                 //GPU do not have division...
                 *(yx.getPointer() + k) = *(grad_y_ptr + k) / *(grad_x_ptr + k);
-                *(t0.getPointer() + k) = *(yx.getPointer() + k);
+                *(t0.getPointer() + k) = std::abs(*(yx.getPointer() + k));
                 if (!(*(t0.getPointer() + k) < 1.f))
                     *(t0.getPointer() + k) = 1.f / *(t0.getPointer() + k);
             }
@@ -358,7 +386,9 @@ int main(int argc, char * argv[])
             cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
 #endif
 
-
+#ifndef NO_GUI
+            image.copyTo(frame);
+#endif
             for (auto& atu : abandoned_objects.candidat)
             {
                 if (!atu.isTooSmall(minsize))
@@ -372,7 +402,7 @@ int main(int argc, char * argv[])
                         results << " x: " << params.rr << " y: " << params.cc << " w: " << params.w << " h: " << params.h << std::endl;
 #ifndef NO_GUI
                         const static Scalar color(0, 0, 255);
-                        rectangle(image, Rect(atu.origin, atu.endpoint), color, 2);
+                        rectangle(frame, Rect(atu.origin, atu.endpoint), color, 2);
 #endif
                     }
                 }
@@ -383,7 +413,7 @@ int main(int argc, char * argv[])
 #else
             const std::string text = "Candidats count: " + std::to_string(abandoned_objects.candidat.size());
 #endif
-            cv::putText(image,
+            cv::putText(frame,
                         text,
                         cv::Point(5, 20), // Coordinates
                         cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
@@ -392,7 +422,7 @@ int main(int argc, char * argv[])
                         1, // Line Thickness
                         CV_AA); // Anti-alias
 
-            imshow("output", image);//ok,those 2 take around -5 fps on i7
+            imshow("output", frame);//ok,those 2 take around -5 fps on i7
             waitKey(10);
 #endif
         }
