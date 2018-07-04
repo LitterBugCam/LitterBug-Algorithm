@@ -20,7 +20,8 @@
 #include "Litterheaders.h"
 
 #define PI 3.14159265f
-
+#define HALF_PI 1.570796f
+#define QUATER_PI 0.785398
 
 //in C++11 lambdas can't be templates :( too bad
 template<class C, class T>
@@ -118,6 +119,16 @@ public:
     void clear()
     {
         storage *= 0;
+    }
+
+    T* ptr()
+    {
+        return storage.ptr<T>();
+    }
+
+    void resize(int rows, int cols)
+    {
+        storage.create(rows, cols, cv::DataType<T>::type);
     }
 };
 

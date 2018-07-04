@@ -3,3 +3,4 @@ LIBS+=-L$$PWD/../QPULib/Tests
 LIBS+= -lqpu
 QMAKE_CXXFLAGS += -fpermissive
 DEFINES += EMULATION_MODE
+DEFINES += USE_GPU

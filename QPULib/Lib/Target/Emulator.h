@@ -1,78 +1,84 @@
 #ifndef _EMULATOR_H_
 #define _EMULATOR_H_
 
-#include <stdint.h>
+#include <cstdint>
 #include "Common/Seq.h"
 #include "Target/Syntax.h"
 
 #define VPM_SIZE 2048
 #define NUM_LANES 16
 #define MAX_QPUS 12
-#define EMULATOR_HEAP_SIZE 65536
+#define EMULATOR_HEAP_SIZE (2 * 1024 * 1024 * 1024)
 
 // This is a type for representing the values in a vector
-union Word {
-  int32_t intVal;
-  float floatVal; 
+union Word
+{
+    int32_t intVal;
+    float floatVal;
 };
 
 // Vector values
-struct Vec {
-  Word elems[NUM_LANES];
+struct Vec
+{
+    Word elems[NUM_LANES];
 };
 
 // In-flight DMA requests
-struct DMAReq {
-  bool active;
-  Word addr;
-  BufferAorB buffer;
+struct DMAReq
+{
+    bool active;
+    Word addr;
+    BufferAorB buffer;
 };
 
 // VPM load queue (max 2 elements)
-struct VPMLoadQueue {
-  int addrs[3];
-  int front, back;
+struct VPMLoadQueue
+{
+    int addrs[3];
+    int front, back;
 };
 
 // State of a single QPU.
-struct QPUState {
-  int id;                    // QPU id
-  int numQPUs;               // QPU count
-  bool running;              // Is QPU active, or has it halted?
-  int pc;                    // Program counter
-  Vec* regFileA;             // Register file A
-  int sizeRegFileA;          // (and size)
-  Vec* regFileB;             // Register file B
-  int sizeRegFileB;          // (and size)
-  Vec accum[6];              // Accumulator registers
-  bool negFlags[NUM_LANES];  // Negative flags
-  bool zeroFlags[NUM_LANES]; // Zero flags
-  int nextUniform;           // Pointer to next uniform to read
-  DMAReq dmaLoad;            // In-flight DMA load
-  DMAReq dmaStore;           // In-flight DMA store
-  VPMLoadQueue vpmLoadQueue; // VPM load queue
-  int readStride;            // Read stride
-  int writeStride;           // Write stride
-  SmallSeq<Vec>* loadBuffer; // Load buffer for loads via TMU
+struct QPUState
+{
+    int id;                    // QPU id
+    int numQPUs;               // QPU count
+    bool running;              // Is QPU active, or has it halted?
+    int pc;                    // Program counter
+    Vec* regFileA;             // Register file A
+    int sizeRegFileA;          // (and size)
+    Vec* regFileB;             // Register file B
+    int sizeRegFileB;          // (and size)
+    Vec accum[6];              // Accumulator registers
+    bool negFlags[NUM_LANES];  // Negative flags
+    bool zeroFlags[NUM_LANES]; // Zero flags
+    int nextUniform;           // Pointer to next uniform to read
+    DMAReq dmaLoad;            // In-flight DMA load
+    DMAReq dmaStore;           // In-flight DMA store
+    VPMLoadQueue vpmLoadQueue; // VPM load queue
+    int readStride;            // Read stride
+    int writeStride;           // Write stride
+    SmallSeq<Vec>* loadBuffer; // Load buffer for loads via TMU
 };
 
 // State of the VideoCore.
-struct State {
-  QPUState qpu[MAX_QPUS]; // State of each QPU
-  Word vpm[VPM_SIZE];     // Shared VPM memory
-  Seq<char>* output;      // Output for print statements
-  int sema[16];           // Semaphores
+struct State
+{
+    QPUState qpu[MAX_QPUS]; // State of each QPU
+    Word vpm[VPM_SIZE];     // Shared VPM memory
+    Seq<char>* output;      // Output for print statements
+    int sema[16];           // Semaphores
 };
 
 // Emulator
 void emulate
-  ( int numQPUs            // Number of QPUs active
+( int numQPUs            // Number of QPUs active
   , Seq<Instr>* instrs     // Instruction sequence
   , int maxReg             // Max reg id used
   , Seq<int32_t>* uniforms // Kernel parameters
   , Seq<char>* output      // Output from print statements
-                           // (if NULL, stdout is used)
-  );
+  // (if NULL, stdout is used)
+);
 
 // Heap used in emulation mode.
 extern uint32_t emuHeapEnd;

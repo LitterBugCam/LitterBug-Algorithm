@@ -57,8 +57,63 @@ const static std::map<std::string, std::function<void(const std::string& src)>> 
 };
 #undef DECLARE_PARAM
 
+#ifdef USE_GPU
+#include <QPULib.h>
+
+//GPU cannot do division, so have to prepare values on CPU
+//Float t0 = (xOld < 1.0f) ? xOld : 1.0f / x;
+void kernel_atan(Int n, Ptr<Float> x, Ptr<Float> t0_p)
+{
+    //https://seblagarde.wordpress.com/2014/12/01/inverse-trigonometric-functions-gpu-optimization-for-amd-gcn-architecture/
+    Int inc = numQPUs() << 4;
+    Ptr<Float> p = x + index() + (me() << 4);
+    Ptr<Float> b = t0_p + index() + (me() << 4);
+    gather(p);
+    gather(b);
+
+    Float xOld;
+    Float res;
+    Float t0;
+    For (Int i = 0, i < n, i = i + inc)
+    gather(p + inc);
+    gather(b + inc);
+    receive(xOld);
+    receive(t0);
+
+    Float t1 = t0 * t0;
+    Float poly = 0.0872929f;
+    poly = -0.301895f + poly * t1;
+    poly = 1.0f + poly * t1;
+    poly = poly * t0;
+
+    Where(xOld < 1.0f)
+    res = poly;
+    End
+
+    Where(xOld >= 1.0f)
+    res = HALF_PI - poly;
+    End
+
+    Where (xOld < 0)
+    res = 0 - res;
+    End
+
+    store(res, p);
+    p = p + inc;
+    End
+
+    // Discard pre-fetched vectors from final iteration
+    receive(xOld);
+}
+
+#endif
+
 int main(int argc, char * argv[])
 {
+#ifdef USE_GPU
+    auto k_atan = compile(kernel_atan);
+    k_atan.setNumQPUs(12); //it has 12 units
+#endif
     using namespace cv;
 
     std::ofstream results;
@@ -166,8 +221,11 @@ int main(int argc, char * argv[])
     float meanfps = 0;
 #endif
 
+
     for (fullbits_int_t i = 0; !image.empty(); ++i, (capture >> image))
     {
+        const size_t pixels_size    = image.cols * image.rows;
+        const size_t pixels_size_al = pixels_size + (16 - (pixels_size % 16)); //aligned to 16 items for gpu
 #ifndef NO_FPS
         auto t = static_cast<double>(getTickCount());
 #endif
@@ -206,21 +264,23 @@ int main(int argc, char * argv[])
             D_Sy = grad_y - B_Sy;
             B_Sy = B_Sy + alpha_S * D_Sy;
 
+            assert(grad_x.isContinuous());
+            assert(grad_y.isContinuous());
+            auto grad_x_ptr = grad_x.ptr<float>();
+            auto grad_y_ptr = grad_y.ptr<float>();
+
             if (i % framemod2 == 0)
             {
                 assert(abandoned_map.isContinuous());
-                assert(grad_x.isContinuous());
-                assert(grad_y.isContinuous());
+
                 assert(D_Sx.isContinuous());
                 assert(D_Sy.isContinuous());
 
                 auto plain_map_ptr = abandoned_map.ptr<uchar>();
-                auto grad_x_ptr = grad_x.ptr<float>();
-                auto grad_y_ptr = grad_y.ptr<float>();
                 auto D_Sx_ptr = D_Sx.ptr<float>();
                 auto D_Sy_ptr = D_Sy.ptr<float>();
 
-                for (size_t k = 0, sz = image.rows * image.cols; k < sz; ++k)
+                for (size_t k = 0; k < pixels_size; ++k)
                 {
                     auto point = plain_map_ptr + k;
                     if (*point) //overflow prot
@@ -278,7 +338,26 @@ int main(int argc, char * argv[])
 
             cv::Canny(gray, canny.getStorage(), 30, 30 * 3, 3);
             threshold(abandoned_map, object_map.getStorage(), aotime2, 255, THRESH_BINARY);
+#ifdef USE_GPU
+            SharedArray<float> yx(pixels_size_al);
+            SharedArray<float> t0(pixels_size_al);
+            angles.resize(image.rows, image.cols);
+            for (size_t k = 0, sz = pixels_size; k < sz; ++k)
+            {
+                //GPU do not have division...
+                *(yx.getPointer() + k) = *(grad_y_ptr + k) / *(grad_x_ptr + k);
+                *(t0.getPointer() + k) = *(yx.getPointer() + k);
+                if (!(*(t0.getPointer() + k) < 1.f))
+                    *(t0.getPointer() + k) = 1.f / *(t0.getPointer() + k);
+            }
+
+            k_atan(static_cast<int>(pixels_size), &yx, &t0);
+            for (size_t k = 0, sz = pixels_size; k < sz; ++k)
+                *(angles.ptr() + k) = *(yx.getPointer() + k);
+#else
             cv::cartToPolar(grad_x, grad_y, not_used, angles.getStorage(), false);
+#endif
+
 
             for (auto& atu : abandoned_objects.candidat)
             {
