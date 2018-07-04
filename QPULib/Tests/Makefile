@@ -62,7 +62,7 @@ top:
 clean:
 	rm -rf obj obj-debug obj-qpu obj-debug-qpu
 	rm -f Tri GCD Print MultiTri AutoTest OET Hello ReqRecv Rot3D ID *.o
-	rm -f HeatMap
+	rm -f HeatMap libqpu.a
 
 LIB = $(patsubst %,$(OBJ_DIR)/%,$(OBJ))
 
