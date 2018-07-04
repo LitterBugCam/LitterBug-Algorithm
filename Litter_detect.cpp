@@ -207,10 +207,10 @@ int main(int argc, char * argv[])
     //however, lets say 1 second of real time video
     objects abandoned_objects(framesCount, fps * std::max(fps_life, 0.01f));
 
-    cv::Mat B_Sx, B_Sy;
-    cv::Mat grad_x, grad_y;
+    cv::UMat B_Sx, B_Sy;
+    cv::UMat grad_x, grad_y;
     cv::UMat gray, tmp;
-    cv::Mat D_Sx, D_Sy;
+    cv::UMat D_Sx, D_Sy;
     cv::Mat frame;
     ZeroedArray<uint8_t> canny(0);
     ZeroedArray<uint8_t> object_map(0);
@@ -244,10 +244,9 @@ int main(int argc, char * argv[])
             gray = gray.mul(1.5f);
 
 
-        cv::Sobel(gray, tmp, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
-        tmp.copyTo(grad_x);
-        cv::Sobel(gray, tmp, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
-        tmp.copyTo(grad_y);
+        cv::Sobel(gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+        cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+
 
         if (i == 0)
         {
@@ -259,17 +258,17 @@ int main(int argc, char * argv[])
         }
         else
         {
-            //            cv::subtract(grad_x, B_Sx, D_Sx);
-            //            cv::add(D_Sx.mul(alpha_S), B_Sx, B_Sx);
+            cv::subtract(grad_x, B_Sx, D_Sx);
+            cv::add(D_Sx.mul(alpha_S), B_Sx, B_Sx);
 
-            //            cv::subtract(grad_y, B_Sy, D_Sy);
-            //            cv::add(D_Sy.mul(alpha_S), B_Sy, B_Sy);
+            cv::subtract(grad_y, B_Sy, D_Sy);
+            cv::add(D_Sy.mul(alpha_S), B_Sy, B_Sy);
 
-            D_Sx = grad_x - B_Sx;
-            B_Sx = B_Sx + alpha_S * D_Sx;
+            //            D_Sx = grad_x - B_Sx;
+            //            B_Sx = B_Sx + alpha_S * D_Sx;
 
-            D_Sy = grad_y - B_Sy;
-            B_Sy = B_Sy + alpha_S * D_Sy;
+            //            D_Sy = grad_y - B_Sy;
+            //            B_Sy = B_Sy + alpha_S * D_Sy;
 
             //            assert(grad_x.isContinuous());
             //            assert(grad_y.isContinuous());
@@ -303,10 +302,11 @@ int main(int argc, char * argv[])
                 //                            *point = 255;
                 //                    }
                 //                }
-                D_Sx = cv::abs(D_Sx);
-                grad_x = cv::abs(grad_x);
-                D_Sy = cv::abs(D_Sy);
-                grad_y = cv::abs(grad_y);
+                cv::absdiff(D_Sx, cv::Scalar::all(0), D_Sx);
+                cv::absdiff(grad_x, cv::Scalar::all(0), grad_x);
+                cv::absdiff(D_Sy, cv::Scalar::all(0), D_Sy);
+                cv::absdiff(grad_y, cv::Scalar::all(0), grad_y);
+
                 cv::threshold(D_Sx, D_Sx, fore_th, 2, THRESH_BINARY);
                 cv::threshold(grad_x, grad_x, 19, 1, THRESH_BINARY);
                 cv::multiply(D_Sx, grad_x, D_Sx);
