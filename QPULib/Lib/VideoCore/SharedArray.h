@@ -6,10 +6,10 @@
 #include <cassert>
 #include <cstdlib>
 
-extern "C" {
-#include "VideoCore/Mailbox.h"
-#include "VideoCore/VideoCore.h"
-}
+
+#include "Mailbox.h"
+#include "VideoCore.h"
+
 #ifdef EMULATION_MODE
 
 // ============================================================================

@@ -12,22 +12,27 @@
 
 // Operator id
 // (Note: order of operators is important to the random generator.)
-enum OpId {
-  // Int & Float operators:
-  ROTATE, ADD, SUB, MUL, MIN, MAX,
+enum OpId
+{
+    // Int & Float operators:
+    ROTATE, ADD, SUB, MUL, MIN, MAX,
 
-  // Int only operators:
-  SHL, SHR, USHR, BOR, BAND, BXOR, BNOT, ROR,
+    // Int only operators:
+    SHL, SHR, USHR, BOR, BAND, BXOR, BNOT, ROR,
 
-  // Conversion operators:
-  ItoF, FtoI
+    // Conversion operators:
+    ItoF, FtoI
 };
 
 // Every operator has a type associated with it
 enum BaseType { UINT8, INT16, INT32, FLOAT };
 
 // Pair containing operator and base type
-struct Op { OpId op; BaseType type; };
+struct Op
+{
+    OpId op;
+    BaseType type;
+};
 
 // Construct an 'Op'
 Op mkOp(OpId op, BaseType type);
@@ -43,63 +48,76 @@ bool isCommutative(Op op);
 // ============================================================================
 
 // What kind of variable is it
-enum VarTag {
+enum VarTag
+{
     STANDARD     // A standard variable that can be stored
-                 // in a general-purpose register on a QPU
-  , UNIFORM      // (Read-only.)  Reading this variable will consume a value
-                 // (replicated 16 times) from the QPU's UNIFORM FIFO
-                 // (this is how parameters are passed to kernels).
-  , QPU_NUM      // (Read-only.) Reading this variable will yield the
-                 // QPU's unique id (replicated 16 times).
-  , ELEM_NUM     // (Read-only.) Reading this variable will yield a vector
-                 // containing the integers from 0 to 15.
-  , TMU0_ADDR    // (Write-only.) Initiate load via TMU
+    // in a general-purpose register on a QPU
+    , UNIFORM      // (Read-only.)  Reading this variable will consume a value
+    // (replicated 16 times) from the QPU's UNIFORM FIFO
+    // (this is how parameters are passed to kernels).
+    , QPU_NUM      // (Read-only.) Reading this variable will yield the
+    // QPU's unique id (replicated 16 times).
+    , ELEM_NUM     // (Read-only.) Reading this variable will yield a vector
+    // containing the integers from 0 to 15.
+    , TMU0_ADDR    // (Write-only.) Initiate load via TMU
 };
 
-typedef int VarId;
+using VarId = int;
 
-struct Var {
-  VarTag tag;
+struct Var
+{
+    VarTag tag;
 
-  // A unique identifier for a standard variable
-  VarId id;
+    // A unique identifier for a standard variable
+    VarId id;
 };
 
 // Reserved general-purpose vars
-enum ReservedVarId {
-  RSV_QPU_ID       = 0,
-  RSV_NUM_QPUS     = 1,
-  RSV_READ_STRIDE  = 2,
-  RSV_WRITE_STRIDE = 3
+enum ReservedVarId
+{
+    RSV_QPU_ID       = 0,
+    RSV_NUM_QPUS     = 1,
+    RSV_READ_STRIDE  = 2,
+    RSV_WRITE_STRIDE = 3
 };
 
 // ============================================================================
-// Expressions    
+// Expressions
 // ============================================================================
 
 // What kind of expression is it?
 enum ExprTag { INT_LIT, FLOAT_LIT, VAR, APPLY, DEREF };
 
-struct Expr {
-  // What kind of expression is it?
-  ExprTag tag;
+struct Expr
+{
+    // What kind of expression is it?
+    ExprTag tag;
 
-  union {
-    // Integer literal
-    int intLit;
+    union
+    {
+        // Integer literal
+        int intLit;
 
-    // Float literal
-    float floatLit;
+        // Float literal
+        float floatLit;
 
-    // Variable identifier
-    Var var;
+        // Variable identifier
+        Var var;
 
-    // Application of a binary operator
-    struct { Expr* lhs; Op op; Expr* rhs; } apply;
+        // Application of a binary operator
+        struct
+        {
+            Expr* lhs;
+            Op op;
+            Expr* rhs;
+        } apply;
 
-    // Dereference a pointer
-    struct { Expr* ptr; } deref;
-  };
+        // Dereference a pointer
+        struct
+        {
+            Expr* ptr;
+        } deref;
+    };
 };
 
 // Functions to construct expressions
@@ -121,7 +139,11 @@ bool isLit(Expr* e);
 enum CmpOpId { EQ, NEQ, LT, GT, LE, GE };
 
 // Pair containing comparison operator and base type
-struct CmpOp { CmpOpId op; BaseType type; };
+struct CmpOp
+{
+    CmpOpId op;
+    BaseType type;
+};
 
 // Construct an 'Op'
 CmpOp mkCmpOp(CmpOpId op, BaseType type);
@@ -133,23 +155,38 @@ CmpOp mkCmpOp(CmpOpId op, BaseType type);
 // Kinds of boolean expressions
 enum BExprTag { NOT, AND, OR, CMP };
 
-struct BExpr {
-  // What kind of boolean expression is it?
-  BExprTag tag;
+struct BExpr
+{
+    // What kind of boolean expression is it?
+    BExprTag tag;
 
-  union {
-    // Negation
-    BExpr* neg;
+    union
+    {
+        // Negation
+        BExpr* neg;
 
-    // Conjunction
-    struct { BExpr* lhs; BExpr* rhs; } conj;
+        // Conjunction
+        struct
+        {
+            BExpr* lhs;
+            BExpr* rhs;
+        } conj;
 
-    // Disjunction
-    struct { BExpr* lhs; BExpr* rhs; } disj;
+        // Disjunction
+        struct
+        {
+            BExpr* lhs;
+            BExpr* rhs;
+        } disj;
 
-    // Comparison
-    struct { Expr* lhs; CmpOp op; Expr* rhs; } cmp;
-  };
+        // Comparison
+        struct
+        {
+            Expr* lhs;
+            CmpOp op;
+            Expr* rhs;
+        } cmp;
+    };
 };
 
 // Functions to construct boolean expressions
@@ -166,13 +203,14 @@ BExpr* mkCmp(Expr*  lhs, CmpOp op, Expr*  rhs);
 // Kinds of conditional expressions
 enum CExprTag { ALL, ANY };
 
-struct CExpr {
-  // What kind of boolean expression is it?
-  CExprTag tag;
+struct CExpr
+{
+    // What kind of boolean expression is it?
+    CExprTag tag;
 
-  // This is either a scalar boolean expression, or a reduction of a vector
-  // boolean expressions using 'any' or 'all' operators.
-  BExpr* bexpr;
+    // This is either a scalar boolean expression, or a reduction of a vector
+    // boolean expressions using 'any' or 'all' operators.
+    BExpr* bexpr;
 };
 
 // Functions to construct conditional expressions
@@ -187,12 +225,14 @@ CExpr* mkAny(BExpr* bexpr);
 // For displaying values in emulation
 enum PrintTag { PRINT_INT, PRINT_FLOAT, PRINT_STR };
 
-struct PrintStmt {
-  PrintTag tag;
-  union {
-    const char* str;
-    Expr* expr;
-  };
+struct PrintStmt
+{
+    PrintTag tag;
+    union
+    {
+        const char* str;
+        Expr* expr;
+    };
 };
 
 // ============================================================================
@@ -200,51 +240,86 @@ struct PrintStmt {
 // ============================================================================
 
 // What kind of statement is it?
-enum StmtTag {
-  SKIP, ASSIGN, SEQ, WHERE,
-  IF, WHILE, PRINT, FOR,
-  SET_READ_STRIDE, SET_WRITE_STRIDE,
-  LOAD_RECEIVE, STORE_REQUEST, FLUSH,
-  SEND_IRQ_TO_HOST, SEMA_INC, SEMA_DEC };
+enum StmtTag
+{
+    SKIP, ASSIGN, SEQ, WHERE,
+    IF, WHILE, PRINT, FOR,
+    SET_READ_STRIDE, SET_WRITE_STRIDE,
+    LOAD_RECEIVE, STORE_REQUEST, FLUSH,
+    SEND_IRQ_TO_HOST, SEMA_INC, SEMA_DEC
+};
 
-struct Stmt {
-  // What kind of statement is it?
-  StmtTag tag;
+struct Stmt
+{
+    // What kind of statement is it?
+    StmtTag tag;
 
-  union {
-    // Assignment
-    struct { Expr* lhs; Expr* rhs; } assign;
+    union
+    {
+        // Assignment
+        struct
+        {
+            Expr* lhs;
+            Expr* rhs;
+        } assign;
 
-    // Sequential composition
-    struct { Stmt* s0; Stmt* s1; } seq;
+        // Sequential composition
+        struct
+        {
+            Stmt* s0;
+            Stmt* s1;
+        } seq;
 
-    // Where
-    struct { BExpr* cond; Stmt* thenStmt; Stmt* elseStmt; } where;
+        // Where
+        struct
+        {
+            BExpr* cond;
+            Stmt* thenStmt;
+            Stmt* elseStmt;
+        } where;
 
-    // If
-    struct { CExpr* cond; Stmt* thenStmt; Stmt* elseStmt; } ifElse;
+        // If
+        struct
+        {
+            CExpr* cond;
+            Stmt* thenStmt;
+            Stmt* elseStmt;
+        } ifElse;
 
-    // While
-    struct { CExpr* cond; Stmt* body; } loop;
+        // While
+        struct
+        {
+            CExpr* cond;
+            Stmt* body;
+        } loop;
 
-    // For (only used intermediately during AST construction)
-    struct { CExpr* cond; Stmt* inc; Stmt* body; } forLoop;
+        // For (only used intermediately during AST construction)
+        struct
+        {
+            CExpr* cond;
+            Stmt* inc;
+            Stmt* body;
+        } forLoop;
 
-    // Print
-    PrintStmt print;
+        // Print
+        PrintStmt print;
 
-    // Set stride
-    Expr* stride;
+        // Set stride
+        Expr* stride;
 
-    // Load receive destination
-    Expr* loadDest;
+        // Load receive destination
+        Expr* loadDest;
 
-    // Store request
-    struct { Expr* data; Expr* addr; } storeReq;
+        // Store request
+        struct
+        {
+            Expr* data;
+            Expr* addr;
+        } storeReq;
 
-    // Semaphore id for increment / decrement
-    int semaId;
-  };
+        // Semaphore id for increment / decrement
+        int semaId;
+    };
 };
 
 // Functions to construct statements
